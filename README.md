@@ -13,8 +13,16 @@ Tested with:
  - LG G3 (D855) on Arch Linux.
 
 ## Usage
-This tool provides an interactive shell where you can enter commands and see a
-response. Example use:
+This tool provides an interactive shell where you can execute commands in
+Download Mode. To enter this mode:
+
+ 1. Power off the phone.
+ 2. Press and hold **Volume up**.
+ 3. Connect the phone to a computer using a USB cable.
+ 4. Wait for the **Download mode** screen to appear.
+ 5. Release keys. You should now see a **Firmware Update** screen.
+
+Now you can issue commands using the interactive shell:
 
     (venv)[peter@al lglaf]$ ./lglaf.py
     LGLAF.py by Peter Wu (https://lekensteyn.nl/lglaf)
@@ -50,10 +58,12 @@ Or if you are on Windows and have LG drivers installed:
         \Device\Serial0         REG_SZ  COM1
         \Device\LGANDNETMDM0    REG_SZ  COM3
         \Device\LGANDNETDIAG1   REG_SZ  COM4
-    > lglaf.py --serial COM4
+    > python lglaf.py --serial COM4
     LGLAF.py by Peter Wu (https://lekensteyn.nl/lglaf)
     Type a shell command to execute or "exit" to leave.
-    #
+    # exit
+    > echo ls -l | python lglaf.py --serial COM4
+    ...
 
 ## License
 See the [LICENSE](LICENSE) file for the license (MIT).

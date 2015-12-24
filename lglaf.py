@@ -217,7 +217,13 @@ class USBCommunication(Communication):
 
 ### Interactive loop
 
-def get_commands():
+def get_commands(command):
+    if command:
+        yield command
+        return
+    # Happened on Win32/Py3.4.4 when: echo ls | lglaf.py --serial com4
+    if sys.stdin is None:
+        raise RuntimeError('No console input available!')
     if sys.stdin.isatty():
         print("LGLAF.py by Peter Wu (https://lekensteyn.nl/lglaf)\n"
                 "Type a shell command to execute or \"exit\" to leave.",
@@ -251,6 +257,7 @@ def command_to_payload(command):
     return make_request(command, args, body)
 
 parser = argparse.ArgumentParser(description='LG LAF Download Mode utility')
+parser.add_argument("-c", "--command", help='Shell command to execute')
 parser.add_argument("--serial", metavar="PATH", dest="serial_path",
         help="Path to serial device (e.g. COM4).")
 parser.add_argument("--debug", action='store_true', help="Enable debug messages")
@@ -273,7 +280,7 @@ def main():
 
     with closing(comm):
         comm.reset()
-        for command in get_commands():
+        for command in get_commands(args.command):
             try:
                 payload = command_to_payload(command)
                 header, response = comm.call(payload)
