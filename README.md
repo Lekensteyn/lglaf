@@ -12,6 +12,10 @@ LGLAF.py depends on:
    sha256sum: 86e893b7f5da7f7d2656d9ce2563f082271983bb63903d0ed5cb279c560db459)
  - (Linux) PyUSB: https://walac.github.io/pyusb/
 
+On Linux, you must also install
+[rules.d/42-usb-lglaf.rules](rules.d/42-usb-lglaf.rules) to `/etc/udev/rules.d/`
+in order to give the regular user access to the USB device.
+
 Tested with:
 
  - LG G3 (D855) on 64-bit Arch Linux (Python 3.5.1, pyusb 1.0.0b2, libusb 1.0.20)
