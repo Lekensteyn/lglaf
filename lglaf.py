@@ -15,6 +15,11 @@ except ImportError: pass
 # Try USB interface
 try: import usb.core
 except ImportError: pass
+# Windows registry for serial port detection
+try: import winreg
+except ImportError:
+    try: import _winreg as winreg
+    except ImportError: winreg = None
 
 _logger = logging.getLogger("LGLAF.py")
 
@@ -214,6 +219,14 @@ class USBCommunication(Communication):
             if e.errno != 110:
                 raise
 
+def detect_serial_path():
+    try:
+        path = r'HARDWARE\DEVICEMAP\SERIALCOMM'
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path) as key:
+            return winreg.QueryValueEx(key, r'\Device\LGANDNETDIAG1')[0]
+    except OSError:
+        return None
+
 
 ### Interactive loop
 
@@ -273,6 +286,12 @@ def main():
 
     if args.serial_path:
         comm = FileCommunication(args.serial_path)
+    elif winreg is not None and 'usb.core' not in sys.modules:
+        serial_path = detect_serial_path()
+        _logger.debug("Using serial port: %s", serial_path)
+        if not serial_path:
+            raise RuntimeError("Please install LG drivers or PyUSB")
+        comm = FileCommunication(serial_path)
     else:
         if 'usb.core' not in sys.modules:
             raise RuntimeError("Please install PyUSB for USB support")
