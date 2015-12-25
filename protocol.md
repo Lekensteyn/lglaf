@@ -34,12 +34,26 @@ error code and the original request header as body.
 
 ## Commands
 
-### OPEN - Open
-Arguments: none
-Request body: at most 276 (0x114) bytes (?)
+### OPEN - Open File
+Opens a file path.
 
-### CLSE - Close
-Arguments: none
+Arguments:
+ - arg1 (response): DWORD file descriptor.
+Request body: NUL-terminated file path that should be opened for reading or an
+ empty string to open `/dev/block/mmcblk0` in read/write mode.
+(at most 276 (0x114) bytes?)
+
+Non-existing files result in FAIL with error code 0x80000001.
+
+### CLSE - Close File
+Closes a file descriptor which was returned by the `OPEN` command.
+
+Arguments:
+ - arg1: DWORD file descriptor (same in request and response).
+
+Note: this allows you to close any file descriptor that are in use by the `lafd`
+process, not just the one returned by `OPEN`. You can discover the current file
+descriptors via `ls -l /proc/$pid/fd` where `$pid` is found by `ps | grep lafd`.
 
 ### HELO - Hello
 Arguments:
@@ -53,19 +67,28 @@ Arguments:
 Note: `CTRL(RSET)` with no body is sent by the `Send_Command.exe` utility for
 the `LEAVE` command.
 
-### WRTE - Write
-Arguments:
- - arg1: ?
- - arg2: ?
+### WRTE - Write File
+Writes to a file descriptor.
 
-### READ - Read
 Arguments:
- - arg1: ?
- - arg2: ?
- - arg3: ?
-Response body: present.
+ - arg1: file descriptor (must be open for writing!)
+ - arg2: offset in **blocks** (multiple of 512 bytes).
+Request body: the data to be written. Can be of any size (including 1 or 513).
 
-(Arguments probably encode read offset, length)
+Note: writing to a file descriptor which was opened for reading results in FAIL
+with code 0x82000002. This command is likely used for writing to partitions.
+
+### READ - Read File
+Reads from a file descriptor.
+
+Arguments:
+ - arg1: file descriptor
+ - arg2: offset in **blocks** (multiple of 512 bytes).
+ - arg3: requested length in bytes.
+Response body: data in file at given offset and requested length.
+
+Note: be sure not to read past the end of the file (512 * offset + length), this
+will hang the communication, requiring a reset (pull out battery)!
 
 ### ERSE - Erase
 Arguments:
@@ -83,11 +106,14 @@ see standard error, use variables and globbing, use a command such as:
 
     sh -c "$@" -- eval 2>&1 echo $PATH
 
-### INFO - Get Info
+### INFO
 Arguments:
  - arg1: action (`GPRO` - Get Properties, `SPRO` - Set Properties)
-Request body: fixed size 2824 (0xb08)
-Response body: present for `GPRO`
+Request body: must begin with two bytes (`08 0b`).
+Response body: 2824 (0xb08) bytes of binary info.
+
+See [scripts/parse-props.py](scripts/parse-props.py) for the structure of the
+property body.
 
 ### UNLK - Unlock
 Arguments: none
