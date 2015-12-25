@@ -135,15 +135,28 @@ def make_exec_request(shell_command):
 ### USB or serial port communication
 
 class Communication(object):
+    def __init__(self):
+        self.read_buffer = b''
     def read(self, n):
+        """Reads exactly n bytes."""
+        need = n - len(self.read_buffer)
+        while need > 0:
+            buff = self._read(need)
+            self.read_buffer += buff
+            if not buff:
+                raise EOFError
+            need -= len(buff)
+        data, self.read_buffer = self.read_buffer[0:n], self.read_buffer[n:]
+        return data
+    def _read(self, n):
+        """Try one read, possibly returning less or more than n bytes."""
         raise NotImplementedError
     def write(self, data):
         raise NotImplementedError
     def close(self):
         raise NotImplementedError
     def reset(self):
-        """Tries to consume all outstanding incoming data."""
-        raise NotImplementedError
+        self.read_buffer = b''
     def call(self, payload):
         """Sends a command and returns its response."""
         validate_message(payload)
@@ -163,19 +176,17 @@ class Communication(object):
 
 class FileCommunication(Communication):
     def __init__(self, file_path):
+        super(FileCommunication, self).__init__()
         if sys.version_info[0] >= 3:
             self.f = open(file_path, 'r+b', buffering=0)
         else:
             self.f = open(file_path, 'r+b')
-    def read(self, n):
+    def _read(self, n):
         return self.f.read(n)
     def write(self, data):
         self.f.write(data)
     def close(self):
         self.f.close()
-    def reset(self):
-        # TODO non-blocking read
-        _logger.warn("Reset is not implemented yet")
 
 class USBCommunication(Communication):
     EP_IN = 0x85
@@ -183,21 +194,13 @@ class USBCommunication(Communication):
     # Read timeout. Set to 0 to disable timeouts
     READ_TIMEOUT_MS = 0
     def __init__(self):
-        self.read_buffer = b''
+        super(USBCommunication, self).__init__()
         self.usbdev = usb.core.find(idVendor=0x1004, idProduct=0x633e)
         if self.usbdev is None:
             raise RuntimeError("USB device not found")
-    def read(self, n):
-        while len(self.read_buffer) < n:
-            buff = self._read_chunk(self.READ_TIMEOUT_MS)
-            self.read_buffer += buff
-            if not buff:
-                raise EOFError
-        data, self.read_buffer = self.read_buffer[0:n], self.read_buffer[n:]
-        return data
-    def _read_chunk(self, timeout):
+    def _read(self, n):
         # device seems to use 16 KiB buffers.
-        return self.usbdev.read(self.EP_IN, 2**14, timeout=timeout)
+        return self.usbdev.read(self.EP_IN, 2**14, timeout=self.READ_TIMEOUT_MS)
     def write(self, data):
         # Reset read buffer for response
         if self.read_buffer:
@@ -206,18 +209,29 @@ class USBCommunication(Communication):
         self.usbdev.write(self.EP_OUT, data)
     def close(self):
         usb.util.dispose_resources(self.usbdev)
-    def reset(self):
-        # TODO: do some handshake and only if the response is unexpected, drain
-        # the queue and try again
-        self.read_buffer = b''
-        try:
-            while True:
-                junk = bytes(self._read_chunk(timeout=100))
-                _logger.debug("Ignoring: %r", junk)
-        except usb.core.USBError as e:
-            # Ignore ETIMEDOUT (110)
-            if e.errno != 110:
-                raise
+
+def try_hello(comm):
+    """
+    Tests whether the device speaks the expected protocol. If desynchronization
+    is detected, tries to read as much data as possible.
+    """
+    hello_request = make_request(b'HELO', args=[b'\1\0\0\1'])
+    comm.write(hello_request)
+    data = comm.read(0x20)
+    if data[0:4] != b'HELO':
+        # Unexpected response, maybe some stale data from a previous execution?
+        while data[0:4] != b'HELO':
+            try:
+                validate_message(data, ignore_crc=True)
+                size = struct.unpack_from('<I', data, 0x14)[0]
+                comm.read(size)
+            except RuntimeError: pass
+            # Flush read buffer
+            comm.reset()
+            data = comm.read(0x20)
+        # Just to be sure, send another HELO request.
+        comm.call(hello_request)
+
 
 def detect_serial_path():
     try:
@@ -298,7 +312,7 @@ def main():
         comm = USBCommunication()
 
     with closing(comm):
-        comm.reset()
+        try_hello(comm)
         for command in get_commands(args.command):
             try:
                 payload = command_to_payload(command)
