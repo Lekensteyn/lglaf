@@ -84,18 +84,18 @@ def invert_dword(dword_bin):
 def make_request(cmd, args=[], body=b''):
     if not isinstance(cmd, bytes):
         cmd = cmd.encode('ascii')
-    assert isinstance(body, bytes)
+    assert isinstance(body, bytes), "body must be bytes"
 
     # Header: command, args, ... body size, header crc16, inverted command
     header = bytearray(0x20)
     def set_header(offset, val):
         if isinstance(val, int):
             val = struct.pack('<I', val)
-        assert len(val) == 4
+        assert len(val) == 4, "Header field requires a DWORD"
         header[offset:offset+4] = val
 
     set_header(0, cmd)
-    assert len(args) <= 4
+    assert len(args) <= 4, "Header cannot have more than 4 arguments"
     for i, arg in enumerate(args):
         set_header(4 * (i + 1), arg)
 
