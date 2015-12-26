@@ -91,7 +91,8 @@ def make_request(cmd, args=[], body=b''):
     def set_header(offset, val):
         if isinstance(val, int):
             val = struct.pack('<I', val)
-        assert len(val) == 4, "Header field requires a DWORD"
+        assert len(val) == 4, "Header field requires a DWORD, got %s %r" % \
+                (type(val).__name__, val)
         header[offset:offset+4] = val
 
     set_header(0, cmd)
@@ -241,6 +242,18 @@ def detect_serial_path():
     except OSError:
         return None
 
+def autodetect_device():
+    if winreg is not None and 'usb.core' not in sys.modules:
+        serial_path = detect_serial_path()
+        _logger.debug("Using serial port: %s", serial_path)
+        if not serial_path:
+            raise RuntimeError("Please install LG drivers or PyUSB")
+        return FileCommunication(serial_path)
+    else:
+        if 'usb.core' not in sys.modules:
+            raise RuntimeError("Please install PyUSB for USB support")
+        return USBCommunication()
+
 
 ### Interactive loop
 
@@ -300,19 +313,12 @@ def main():
 
     if args.serial_path:
         comm = FileCommunication(args.serial_path)
-    elif winreg is not None and 'usb.core' not in sys.modules:
-        serial_path = detect_serial_path()
-        _logger.debug("Using serial port: %s", serial_path)
-        if not serial_path:
-            raise RuntimeError("Please install LG drivers or PyUSB")
-        comm = FileCommunication(serial_path)
     else:
-        if 'usb.core' not in sys.modules:
-            raise RuntimeError("Please install PyUSB for USB support")
-        comm = USBCommunication()
+        comm = autodetect_device()
 
     with closing(comm):
         try_hello(comm)
+        _logger.debug("Hello done, proceeding with commands")
         for command in get_commands(args.command):
             try:
                 payload = command_to_payload(command)
