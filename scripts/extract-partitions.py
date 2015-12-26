@@ -79,13 +79,20 @@ def dump_file(comm, remote_path, local_path, size):
 
     # Read offsets must be a multiple of 512 bytes, enforce this
     BLOCK_SIZE = 512
+    unaligned_bytes = offset % BLOCK_SIZE
     offset = BLOCK_SIZE * (offset // BLOCK_SIZE)
 
     with laf_open_ro(comm, remote_path) as fd_num:
-        _logger.debug("Opened fd %d for %s (size %dK, offset %dK)",
-                fd_num, remote_path, size / 1024, offset * BLOCK_SIZE / 1024)
+        _logger.debug("Opened fd %d for %s (final size %.2fK, offset %.2fK)",
+                fd_num, remote_path, size / 1024, offset / 1024)
         with open(local_path, 'ab') as f:
-            f.seek(BLOCK_SIZE * offset)
+            # Offset should be aligned to block size. If not, read at most a
+            # whole block and drop the leading bytes.
+            if unaligned_bytes:
+                chunksize = min(size - offset, BLOCK_SIZE)
+                data = laf_read(comm, fd_num, offset // BLOCK_SIZE, chunksize)
+                f.write(data[unaligned_bytes:])
+                offset += BLOCK_SIZE
             while offset < size:
                 chunksize = min(size - offset, BLOCK_SIZE * MAX_BLOCK_SIZE)
                 data = laf_read(comm, fd_num, offset // BLOCK_SIZE, chunksize)
