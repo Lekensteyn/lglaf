@@ -2,6 +2,13 @@
 LGLAF.py is a utility for communication with LG devices in Download Mode. This
 allows you to execute arbitrary shell commands on a LG phone as root.
 
+Contents of this repository:
+
+ - [lglaf.py](lglaf.py) - main script for communication (see below).
+ - [protocol.md](protocol.md) - Protocol documentation.
+ - [lglaf.lua](lglaf.lua) - Wireshark dissector for LG LAF protocol.
+ - [scripts/](scripts/) - Miscellaneous scripts.
+
 ## Requirements
 LGLAF.py depends on:
 
