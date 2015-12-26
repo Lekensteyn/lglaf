@@ -5,6 +5,12 @@ download mode offered by various LG models. It is based on analysis on the
 trace using Wireshark and usbmon on Linux. Some commands were found in the
 `/sbin/lafd` binary.
 
+This document uses the following conventions for types:
+
+ - `\xaa\xbb\xcc\xdd` denotes a byte pattern `aa bb cc dd`.
+ - `0xddccbbaa` denotes a 32-bit integer in hexadecimal format. It represents
+   the same byte pattern as `\xaa\xbb\xcc\xdd`.
+
 ## Overview
 LAF is a simple request/response protocol operating over USB. The USB details
 are described at the end of the document, the messages are described below.
@@ -74,11 +80,15 @@ Writes to a file descriptor.
 
 Arguments:
  - arg1: file descriptor (must be open for writing!)
- - arg2: offset in **blocks** (multiple of 512 bytes).
+ - arg2 (request): offset in **blocks** (multiple of 512 bytes).
+ - arg2 (response): offset in **bytes**.
 Request body: the data to be written. Can be of any size (including 1 or 513).
 
 Note: writing to a file descriptor which was opened for reading results in FAIL
 with code 0x82000002. This command is likely used for writing to partitions.
+
+Integer overflow in the response offset is ignored. That is, the block offset
+30736384 (0x1d50000) is 0x3aa000000 bytes, but will appear as 0xaa000000.
 
 ### READ - Read File
 Reads from a file descriptor.
