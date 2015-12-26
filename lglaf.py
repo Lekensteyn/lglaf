@@ -297,6 +297,8 @@ def command_to_payload(command):
     return make_request(command, args, body)
 
 parser = argparse.ArgumentParser(description='LG LAF Download Mode utility')
+parser.add_argument("--skip-hello", action="store_true",
+        help="Immediately send commands, skip HELO message")
 parser.add_argument("-c", "--command", help='Shell command to execute')
 parser.add_argument("--serial", metavar="PATH", dest="serial_path",
         help="Path to serial device (e.g. COM4).")
@@ -317,8 +319,9 @@ def main():
         comm = autodetect_device()
 
     with closing(comm):
-        try_hello(comm)
-        _logger.debug("Hello done, proceeding with commands")
+        if not args.skip_hello:
+            try_hello(comm)
+            _logger.debug("Hello done, proceeding with commands")
         for command in get_commands(args.command):
             try:
                 payload = command_to_payload(command)
