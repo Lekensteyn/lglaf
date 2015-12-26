@@ -201,7 +201,9 @@ class USBCommunication(Communication):
             raise RuntimeError("USB device not found")
     def _read(self, n):
         # device seems to use 16 KiB buffers.
-        return self.usbdev.read(self.EP_IN, 2**14, timeout=self.READ_TIMEOUT_MS)
+        array = self.usbdev.read(self.EP_IN, 2**14, timeout=self.READ_TIMEOUT_MS)
+        try: return array.tobytes()
+        except: return array.tostring()
     def write(self, data):
         # Reset read buffer for response
         if self.read_buffer:
@@ -329,7 +331,7 @@ def main():
                 # For debugging, print header
                 if command[0] == '!':
                     _logger.debug('Header: %s',
-                            ' '.join(str(header[i:i+4]).replace("\\x00", "\\0")
+                            ' '.join(repr(header[i:i+4]).replace("\\x00", "\\0")
                         for i in range(0, len(header), 4)))
                 stdout_bin.write(response)
             except Exception as e:
