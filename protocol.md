@@ -62,10 +62,12 @@ Arguments:
 
 ### CTRL - Control
 Arguments:
- - arg1: "RSET" or "ONRS"
+ - arg1: "RSET" (reboots device) or "ONRS"
 
 Note: `CTRL(RSET)` with no body is sent by the `Send_Command.exe` utility for
 the `LEAVE` command.
+
+LG Flash DLL waits 5000 milliseconds after this command.
 
 ### WRTE - Write File
 Writes to a file descriptor.
@@ -84,11 +86,15 @@ Reads from a file descriptor.
 Arguments:
  - arg1: file descriptor
  - arg2: offset in **blocks** (multiple of 512 bytes).
- - arg3: requested length in bytes.
+ - arg3: requested length in bytes (at most 8MiB).
 Response body: data in file at given offset and requested length.
 
 Note: be sure not to read past the end of the file (512 * offset + length), this
 will hang the communication, requiring a reset (pull out battery)!
+
+If the length is larger than somewhere between 227 MiB and 228 MiB, an
+0x80000001 error will be raised (observed with /dev/block/mmcblk0). Requesting
+lengths larger than 8 MiB however already seem to hang the communication.
 
 ### ERSE - Erase
 Arguments:
