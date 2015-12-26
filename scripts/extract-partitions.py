@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+#
+# Dump partitions to file.
+#
+# Copyright (C) 2015 Peter Wu <peter@lekensteyn.nl>
+# Licensed under the MIT license <http://opensource.org/licenses/MIT>.
+
 from collections import OrderedDict
 from contextlib import closing, contextmanager
 import argparse, logging, os, struct
@@ -43,7 +49,7 @@ def laf_read(comm, fd_num, offset, size):
 parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--outdir", default=".",
         help="Output directory for disk images.")
-# Do not dumb partitions larger than this size
+# Do not dump partitions larger than this size
 # (userdata 11728 MiB, system 2064 MiB, cache 608 MiB, cust 256 MiB)
 parser.add_argument("--max-size", type=int, default=65536,
         help="Maximum partition size to dump (in KiB)")
