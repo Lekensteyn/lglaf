@@ -33,9 +33,11 @@ def laf_open_ro(comm, path):
     open_cmd = lglaf.make_request(b'OPEN', body=path_bin)
     open_header = comm.call(open_cmd)[0]
     fd_num = read_uint32(open_header, 4)
-    yield fd_num
-    close_cmd = lglaf.make_request(b'CLSE', args=[fd_num])
-    comm.call(close_cmd)
+    try:
+        yield fd_num
+    finally:
+        close_cmd = lglaf.make_request(b'CLSE', args=[fd_num])
+        comm.call(close_cmd)
 
 def laf_read(comm, fd_num, offset, size):
     """Read size bytes at the given block offset."""
