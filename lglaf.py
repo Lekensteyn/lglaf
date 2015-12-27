@@ -128,7 +128,7 @@ def validate_message(payload, ignore_crc=False):
 def make_exec_request(shell_command):
     # Allow use of shell constructs such as piping. Needs more work not to eat
     # all repetitive spaces, it should also escape some things...
-    body = b'sh -c "$@" -- eval 2>&1 '
+    body = b'sh -c "$@" -- eval 2>&1 </dev/null '
     body += shell_command.encode('ascii') + b'\0'
     return make_request(b'EXEC', body=body)
 
