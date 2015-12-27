@@ -6,6 +6,10 @@ Contents of this repository:
 
  - [lglaf.py](lglaf.py) - main script for communication (see below).
  - [partitions.py](partitions.py) - manage (list / read / write) partitions.
+ - [extract-partitions.py](extract-partitions.py) - Dump all partitions
+   (convenience script that uses partitions.py under the hood). By default the
+   largest partitions (system, cache, cust, userdata) are not dumped though.
+   This can be changed with the `--max-size` option.
  - [protocol.md](protocol.md) - Protocol documentation.
  - [lglaf.lua](lglaf.lua) - Wireshark dissector for LG LAF protocol.
  - [scripts/](scripts/) - Miscellaneous scripts.
