@@ -51,8 +51,8 @@ def partition_info(comm, part_name):
     disk_path = "/sys/class/block/%s" % part_name
     try:
         # Convert sector sizes to bytes.
-        start = 512 * int(cat_file(comm, "%s/start" % disk_path))
-        size = 512 * int(cat_file(comm, "%s/size" % disk_path))
+        output = cat_file(comm, '{0}/start {0}/size'.format(disk_path)).split()
+        start, size = (512 * int(x) for x in output)
     except ValueError:
         raise RuntimeError("Partition %s not found" % part_name)
     return start, size
