@@ -156,6 +156,7 @@ def dump_partition(comm, disk_fd, local_path, part_offset, part_size):
             data = laf_read(comm, disk_fd, read_offset // BLOCK_SIZE, chunksize)
             f.write(data)
             read_offset += chunksize
+        _logger.info("Wrote %d bytes to %s", part_size, local_path)
 
 def write_partition(comm, disk_fd, local_path, part_offset, part_size):
     write_offset = BLOCK_SIZE * (part_offset // BLOCK_SIZE)
@@ -195,7 +196,7 @@ def write_partition(comm, disk_fd, local_path, part_offset, part_size):
             write_offset += chunksize
             if len(data) != chunksize:
                 break # Short read, end of file
-        _logger.info("Done after writing %d bytes", written)
+        _logger.info("Done after writing %d bytes from %s", written, local_path)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--debug", action='store_true', help="Enable debug messages")
