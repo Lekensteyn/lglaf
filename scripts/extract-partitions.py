@@ -11,19 +11,6 @@ import lglaf, partitions
 
 _logger = logging.getLogger("extract-partitions")
 
-def read_partition_numbers(comm):
-    output = comm.call(lglaf.make_exec_request('cat /proc/partitions'))[1]
-    partitions = []
-    for line in output.decode('ascii').split('\n'):
-        if not line:
-            continue
-        name = line.split()[-1]
-        if not name.startswith('mmcblk0p'):
-            continue
-        part_num = int(name[len('mmcblk0p'):])
-        partitions.append(part_num)
-    return partitions
-
 parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--outdir", default=".",
         help="Output directory for disk images.")
@@ -34,14 +21,14 @@ parser.add_argument("--max-size", metavar="kbytes", type=int, default=65536,
 parser.add_argument("--debug", action='store_true', help="Enable debug messages")
 
 def dump_partitions(comm, disk_fd, outdir, max_size):
-    part_nums = read_partition_numbers(comm)
-    for part_num in part_nums:
-        part_offset, part_size = partitions.partition_info(comm, part_num)
+    parts = partitions.get_partitions(comm)
+    for part_label, part_name in parts.items():
+        part_offset, part_size = partitions.partition_info(comm, part_name)
         if part_size > max_size:
-            _logger.info("Ignoring large partition %s of size %dK" % (part_num,
-                part_size / 1024))
+            _logger.info("Ignoring large partition %s (%s) of size %dK",
+                    part_label, part_name, part_size / 1024)
             continue
-        out_path = os.path.join(outdir, "mmcblk0p%d.bin" % part_num)
+        out_path = os.path.join(outdir, "%s.bin" % part_name)
         try:
             current_size = os.path.getsize(out_path)
             if current_size > part_size:
@@ -49,12 +36,12 @@ def dump_partitions(comm, disk_fd, outdir, max_size):
                         out_path, current_size / 1024, part_size / 1024)
                 continue
             elif current_size == part_size:
-                _logger.info("%s: already retrieved %dK",
-                        out_path, part_size / 1024)
+                _logger.info("Skipping partition %s (%s), already found at %s",
+                        part_label, part_name, out_path)
                 continue
         except OSError: pass
-        _logger.info("Dumping partition %d to %s (%d bytes)",
-                part_num, out_path, part_size)
+        _logger.info("Dumping partition %s (%s) to %s (%d bytes)",
+                part_label, part_name, out_path, part_size)
         partitions.dump_partition(comm, disk_fd, out_path, part_offset, part_size)
 
 def main():

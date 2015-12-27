@@ -5,12 +5,20 @@
 # Copyright (C) 2015 Peter Wu <peter@lekensteyn.nl>
 # Licensed under the MIT license <http://opensource.org/licenses/MIT>.
 
+from __future__ import print_function
 from collections import OrderedDict
 from contextlib import closing, contextmanager
 import argparse, logging, os, struct, sys
 import lglaf
 
 _logger = logging.getLogger("partitions")
+
+def human_readable(sz):
+    suffixes = ('', 'Ki', 'Mi', 'Gi', 'Ti')
+    for i, suffix in enumerate(suffixes):
+        if sz <= 1024**(i+1):
+            break
+    return '%.1f %sB' % (sz / 1024**i, suffix)
 
 def read_uint32(data, offset):
     return struct.unpack_from('<I', data, 4)[0]
@@ -19,15 +27,34 @@ def cat_file(comm, path):
     shell_command = b'cat ' + path.encode('ascii') + b'\0'
     return comm.call(lglaf.make_request(b'EXEC', body=shell_command))[1]
 
-def partition_info(comm, part_num):
+def get_partitions(comm):
+    """
+    Maps partition labels (such as "recovery") to block devices (such as
+    "mmcblk0p0"), sorted by the number in the block device.
+    """
+    name_cmd = 'ls -l /dev/block/platform/*/by-name'
+    output = comm.call(lglaf.make_exec_request(name_cmd))[1]
+    output = output.strip().decode('ascii')
+    names = []
+    for line in output.strip().split("\n"):
+        label, arrow, path = line.split()[-3:]
+        assert arrow == '->', "Expected arrow in ls output"
+        blockdev = path.split('/')[-1]
+        if not blockdev.startswith('mmcblk0p'):
+            continue
+        names.append((label, blockdev))
+    names.sort(key=lambda x: int(x[1].lstrip("mmcblk0p")))
+    return OrderedDict(names)
+
+def partition_info(comm, part_name):
     """Retrieves the partition size and offset within the disk (in bytes)."""
-    disk_path = "/sys/block/mmcblk0/mmcblk0p%d" % part_num
+    disk_path = "/sys/class/block/%s" % part_name
     try:
         # Convert sector sizes to bytes.
         start = 512 * int(cat_file(comm, "%s/start" % disk_path))
         size = 512 * int(cat_file(comm, "%s/size" % disk_path))
     except ValueError:
-        raise RuntimeError("Partition %d not found" % part_num)
+        raise RuntimeError("Partition %s not found" % part_name)
     return start, size
 
 @contextmanager
@@ -76,6 +103,15 @@ def open_local_readable(path):
         except: return sys.stdin
     else:
         return open(path, "rb")
+
+def list_partitions(comm):
+    parts = get_partitions(comm)
+    print("Number  StartSector    Size     Name")
+    for part_label, part_name in parts.items():
+        part_num = int(part_name.lstrip('mmcblk0p'))
+        part_offset, part_size = partition_info(comm, part_name)
+        print("%4d    %10d  %10s  %s" % (part_num,
+            part_offset / BLOCK_SIZE, human_readable(part_size), part_label))
 
 # On Linux, one bulk read returns at most 16 KiB. 32 bytes are part of the first
 # header, so remove one block size (512 bytes) to stay within that margin.
@@ -150,28 +186,49 @@ def write_partition(comm, disk_fd, local_path, part_offset, part_size):
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--debug", action='store_true', help="Enable debug messages")
+parser.add_argument("--list", action='store_true',
+        help='List available partitions')
 parser.add_argument("--dump", metavar="LOCAL_PATH",
         help="Dump partition to file ('-' for stdout)")
 parser.add_argument("--load", metavar="LOCAL_PATH",
         help="Write file to partition on device ('-' for stdin)")
-parser.add_argument("partition_number", type=int,
-        help="Partition number (e.g. 1 for block device mmcblk0p1)")
+parser.add_argument("partition", nargs='?',
+        help="Partition number (e.g. 1 for block device mmcblk0p1)"
+        " or partition name (e.g. 'recovery')")
 
 def main():
     args = parser.parse_args()
     logging.basicConfig(format='%(asctime)s %(name)s: %(levelname)s: %(message)s',
             level=logging.DEBUG if args.debug else logging.INFO)
-    part_num = args.partition_number
 
-    if args.dump and args.load:
-        parser.error("Please specify one action from --dump / --load")
+    actions = (args.dump, args.load, args.list)
+    if sum(1 if x else 0 for x in actions) != 1:
+        parser.error("Please specify one action from --dump / --load / --list")
+    if not args.partition and (args.dump or args.load):
+        parser.error("Please specify a partition")
 
     comm = lglaf.autodetect_device()
     with closing(comm):
         lglaf.try_hello(comm)
-        part_offset, part_size = partition_info(comm, part_num)
-        _logger.debug("Partition %d at offset %d (%#x) size %d (%#x)",
-                part_num, part_offset, part_offset, part_size, part_size)
+
+        if args.list:
+            list_partitions(comm)
+            return
+
+        try:
+            selected_partition = "mmcblk0p%d" % int(args.partition)
+        except ValueError:
+            selected_partition = args.partition
+        part_names = get_partitions(comm)
+        for part_label, part_name in part_names.items():
+            if selected_partition in (part_label, part_name):
+                break
+        else:
+            parser.error("Partition not found: %s" % selected_partition)
+
+        part_offset, part_size = partition_info(comm, part_name)
+        _logger.debug("Partition %s (%s) at offset %d (%#x) size %d (%#x)",
+                part_label, part_name, part_offset, part_offset, part_size, part_size)
         with laf_open_disk(comm) as disk_fd:
             _logger.debug("Opened fd %d for disk", disk_fd)
             if args.dump:
