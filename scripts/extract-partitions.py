@@ -16,15 +16,15 @@ parser.add_argument("-d", "--outdir", default=".",
         help="Output directory for disk images.")
 # Do not dump partitions larger than this size
 # (userdata 11728 MiB, system 2064 MiB, cache 608 MiB, cust 256 MiB)
-parser.add_argument("--max-size", metavar="kbytes", type=int, default=65536,
-        help="Maximum partition size to dump (in KiB)")
+parser.add_argument("--max-size", metavar="kbytes", type=int, default=65535,
+        help="Maximum partition size to dump (in KiB) or 0 to dump all (default %(default)d)")
 parser.add_argument("--debug", action='store_true', help="Enable debug messages")
 
 def dump_partitions(comm, disk_fd, outdir, max_size):
     parts = partitions.get_partitions(comm)
     for part_label, part_name in parts.items():
         part_offset, part_size = partitions.partition_info(comm, part_name)
-        if part_size > max_size:
+        if max_size and part_size > max_size:
             _logger.info("Ignoring large partition %s (%s) of size %dK",
                     part_label, part_name, part_size / 1024)
             continue
