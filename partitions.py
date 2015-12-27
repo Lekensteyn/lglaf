@@ -46,6 +46,14 @@ def get_partitions(comm):
     names.sort(key=lambda x: int(x[1].lstrip("mmcblk0p")))
     return OrderedDict(names)
 
+def find_partition(partitions, query):
+    try: query = "mmcblk0p%d" % int(query)
+    except ValueError: pass
+    for part_label, part_name in partitions.items():
+        if query in (part_label, part_name):
+            return part_label, part_name
+    raise ValueError("Partition not found: %s" % query)
+
 def partition_info(comm, part_name):
     """Retrieves the partition size and offset within the disk (in bytes)."""
     disk_path = "/sys/class/block/%s" % part_name
@@ -104,10 +112,15 @@ def open_local_readable(path):
     else:
         return open(path, "rb")
 
-def list_partitions(comm):
-    parts = get_partitions(comm)
+def list_partitions(comm, part_filter=None):
+    partitions = get_partitions(comm)
+    if part_filter:
+        try: part_filter = find_partition(partitions, part_filter)[1]
+        except ValueError: pass # No results is OK.
     print("Number  StartSector    Size     Name")
-    for part_label, part_name in parts.items():
+    for part_label, part_name in partitions.items():
+        if part_filter and part_filter != part_name:
+            continue
         part_num = int(part_name.lstrip('mmcblk0p'))
         part_offset, part_size = partition_info(comm, part_name)
         print("%4d    %10d  %10s  %s" % (part_num,
@@ -212,19 +225,14 @@ def main():
         lglaf.try_hello(comm)
 
         if args.list:
-            list_partitions(comm)
+            list_partitions(comm, args.partition)
             return
 
+        partitions = get_partitions(comm)
         try:
-            selected_partition = "mmcblk0p%d" % int(args.partition)
-        except ValueError:
-            selected_partition = args.partition
-        part_names = get_partitions(comm)
-        for part_label, part_name in part_names.items():
-            if selected_partition in (part_label, part_name):
-                break
-        else:
-            parser.error("Partition not found: %s" % selected_partition)
+            part_label, part_name = find_partition(partitions, args.partition)
+        except ValueError as e:
+            parser.error(e)
 
         part_offset, part_size = partition_info(comm, part_name)
         _logger.debug("Partition %s (%s) at offset %d (%#x) size %d (%#x)",
