@@ -21,7 +21,7 @@ def human_readable(sz):
     return '%.1f %sB' % (sz / 1024**i, suffix)
 
 def read_uint32(data, offset):
-    return struct.unpack_from('<I', data, 4)[0]
+    return struct.unpack_from('<I', data, offset)[0]
 
 def cat_file(comm, path):
     shell_command = b'cat ' + path.encode('ascii') + b'\0'
