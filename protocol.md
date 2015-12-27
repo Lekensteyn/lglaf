@@ -131,13 +131,20 @@ Response body: 2824 (0xb08) bytes of binary info.
 See [scripts/parse-props.py](scripts/parse-props.py) for the structure of the
 property body.
 
-### UNLK - Unlock
+### UNLK - Unlink
+Delete a file.
+
 Arguments: none
+Request body: NUL-terminated file name
+
+Responds with FAIL code 0x80000001 if the file name is invalid (missing) or
+file does not exist. Deleting directories is also not possible, giving the same
+FAIL code 0x80000001.
 
 ### RSVD - Reserved
 Arguments: none
 
-### IOCT
+### IOCT - ioctl
 Unknown.
 
 ### MISC
