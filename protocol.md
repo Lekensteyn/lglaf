@@ -68,7 +68,7 @@ Arguments:
 
 ### CTRL - Control
 Arguments:
- - arg1: "RSET" (reboots device) or "ONRS"
+ - arg1: "RSET" (reboots device), "POFF" (powers device off) or "ONRS"
 
 Note: `CTRL(RSET)` with no body is sent by the `Send_Command.exe` utility for
 the `LEAVE` command.
