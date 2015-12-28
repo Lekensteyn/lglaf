@@ -19,7 +19,7 @@ Each message consists of a header, followed by an optional body. The header
 contains 32-bit DWORDs, integers are encoded in little-endian form:
 
 | Offset (hex) | Offset (dec) | Type | Description
-| ----:| --:| ---
+| ----:| --:| ------- | ---
 | 0x00 | 0  | char[4] | Command
 | 0x04 | 4  | var     | Argument 1
 | 0x08 | 8  | var     | Argument 2
