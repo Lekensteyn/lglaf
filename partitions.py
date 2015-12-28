@@ -86,8 +86,16 @@ def laf_read(comm, fd_num, offset, size):
     assert len(response) == size
     return response
 
+def laf_erase(comm, fd_num, sector_start, sector_count):
+    """TRIM some sectors."""
+    erase_cmd = lglaf.make_request(b'ERSE',
+            args=[fd_num, sector_start, sector_count])
+    header, response = comm.call(erase_cmd)
+    # Ensure that response fd, start and count are sane (match the request)
+    assert erase_cmd[4:4+12] == header[4:4+12], "Unexpected erase response"
+
 def laf_write(comm, fd_num, offset, data):
-    """Read size bytes at the given block offset."""
+    """Write size bytes at the given block offset."""
     #_logger.debug("WRTE(0x%05x, #%d)", offset, len(data)); return
     write_cmd = lglaf.make_request(b'WRTE', args=[fd_num, offset], body=data)
     header = comm.call(write_cmd)[0]
@@ -198,6 +206,19 @@ def write_partition(comm, disk_fd, local_path, part_offset, part_size):
                 break # Short read, end of file
         _logger.info("Done after writing %d bytes from %s", written, local_path)
 
+def wipe_partition(comm, disk_fd, part_offset, part_size):
+    sector_start = part_offset // BLOCK_SIZE
+    sector_count = part_size // BLOCK_SIZE
+
+    # Sanity check
+    assert sector_start >= 34, "Will not allow overwriting GPT scheme"
+    # Discarding no sectors or more than 512 GiB is a bit stupid.
+    assert 0 < sector_count < 1024**3, "Invalid sector count %d" % sector_count
+
+    laf_erase(comm, disk_fd, sector_start, sector_count)
+    _logger.info("Done with TRIM from sector %d, count %d (%s)",
+            sector_start, sector_count, human_readable(part_size))
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--debug", action='store_true', help="Enable debug messages")
 parser.add_argument("--list", action='store_true',
@@ -206,6 +227,8 @@ parser.add_argument("--dump", metavar="LOCAL_PATH",
         help="Dump partition to file ('-' for stdout)")
 parser.add_argument("--load", metavar="LOCAL_PATH",
         help="Write file to partition on device ('-' for stdin)")
+parser.add_argument("--wipe", action='store_true',
+        help="TRIMs a partition")
 parser.add_argument("partition", nargs='?',
         help="Partition number (e.g. 1 for block device mmcblk0p1)"
         " or partition name (e.g. 'recovery')")
@@ -215,10 +238,11 @@ def main():
     logging.basicConfig(format='%(asctime)s %(name)s: %(levelname)s: %(message)s',
             level=logging.DEBUG if args.debug else logging.INFO)
 
-    actions = (args.dump, args.load, args.list)
+    actions = (args.list, args.dump, args.load, args.wipe)
     if sum(1 if x else 0 for x in actions) != 1:
-        parser.error("Please specify one action from --dump / --load / --list")
-    if not args.partition and (args.dump or args.load):
+        parser.error("Please specify one action from"
+        " --list / --dump / --load / --wipe")
+    if not args.partition and (args.dump or args.load or args.wipe):
         parser.error("Please specify a partition")
 
     comm = lglaf.autodetect_device()
@@ -244,6 +268,8 @@ def main():
                 dump_partition(comm, disk_fd, args.dump, part_offset, part_size)
             elif args.load:
                 write_partition(comm, disk_fd, args.load, part_offset, part_size)
+            elif args.wipe:
+                wipe_partition(comm, disk_fd, part_offset, part_size)
 
 if __name__ == '__main__':
     try:
