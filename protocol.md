@@ -1,8 +1,8 @@
 # LG LAF Protocol
-This document is a reverse-engineered protocol description for "LG LAG", the
-download mode offered by various LG models. It is based on analysis on the
-`Send_Command.exe` utility and `LGD855_20140526_LGFLASHv160.dll` file and a USB
-trace using Wireshark and usbmon on Linux. Some commands were found in the
+This document is a reverse-engineered protocol description for LG Advanced Flash
+(LAF), the download mode offered by various LG models. It is based on analysis
+on the `Send_Command.exe` utility and `LGD855_20140526_LGFLASHv160.dll` file and
+a USB trace using Wireshark and usbmon on Linux. Some commands were found in the
 `/sbin/lafd` binary.
 
 This document uses the following conventions for types:
@@ -24,7 +24,7 @@ contains 32-bit DWORDs, integers are encoded in little-endian form:
 | 0x04 | 4  | var     | Argument 1
 | 0x08 | 8  | var     | Argument 2
 | 0x0c | 12 | var     | Argument 3
-| 0x10 | 16 | var     | Argument 4 (not encountered)
+| 0x10 | 16 | var     | Argument 4
 | 0x14 | 20 | int     | Body length
 | 0x18 | 24 | int     | CRC-16
 | 0x1c | 28 | char[4] | Bit-wise invertion of command at offset 0
@@ -94,23 +94,39 @@ Integer overflow in the response offset is ignored. That is, the block offset
 Reads from a file descriptor.
 
 Arguments:
- - arg1: file descriptor
+ - arg1: file descriptor.
  - arg2: offset in **blocks** (multiple of 512 bytes).
  - arg3: requested length in bytes (at most 8MiB).
+ - arg4: "whence" seek mode (see below).
 Response body: data in file at given offset and requested length.
 
 Note: be sure not to read past the end of the file (512 * offset + length), this
 will hang the communication, requiring a reset (pull out battery)!
 
+Arg4 affects the seek mode, values for request:
+ - 0 (`SEEK_SET`) - seek to `512 * offset`.
+ - 1 (`SEEK_CUR`) - read from current position (offset argument is ignored).
+ - 2 (`SEEK_END`) - kind of useless when all offsets are unsigned...
+ - 3 (`SEEK_DATA`) - FAILs with 0x80000001 when used on `/proc/kmsg` or
+   `/dev/block/mmcblk0p44`. Works on a regular file though.
+The response matches the request (masked with 0x3).
+
 If the length is larger than somewhere between 227 MiB and 228 MiB, an
 0x80000001 error will be raised (observed with /dev/block/mmcblk0). Requesting
 lengths larger than 8 MiB however already seem to hang the communication.
 
-### ERSE - Erase
+### ERSE - Erase Block
+TRIMs a block (`IOCTL_TRIM_CMD`).
+
 Arguments:
- - arg1: ?
- - arg2: ?
- - arg3: ?
+ - arg1: file descriptor (open `/dev/block/mmcblk0` for writing).
+ - arg2: start address (in sectors).
+ - arg3: count (in sectors).
+ - arg4: unknown, set to zero.
+Request body: none.
+
+Note: after sending TRIM, reading the block still returned old values. After a
+reboot, everything was zeroed out though.
 
 ### EXEC - Execute Command
 Arguments: none
@@ -120,7 +136,12 @@ Response body: standard output of the command.
 The command is probably split on space and then passes to `execve`. In order to
 see standard error, use variables and globbing, use a command such as:
 
-    sh -c "$@" -- eval 2>&1 echo $PATH
+    sh -c "$@" -- eval 2>&1 </dev/null echo $PATH
+
+If you need to read dmesg (or other blocking files), try to put busybox on the
+device (e.g. by writing to an unused partition) and execute:
+
+    /data/busybox timeout -s 2 cat /proc/kmsg
 
 ### INFO
 Arguments:
