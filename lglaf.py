@@ -138,18 +138,18 @@ def make_exec_request(shell_command):
 class Communication(object):
     def __init__(self):
         self.read_buffer = b''
-    def read(self, n):
+    def read(self, n, timeout=None):
         """Reads exactly n bytes."""
         need = n - len(self.read_buffer)
         while need > 0:
-            buff = self._read(need)
+            buff = self._read(need, timeout=timeout)
             self.read_buffer += buff
             if not buff:
                 raise EOFError
             need -= len(buff)
         data, self.read_buffer = self.read_buffer[0:n], self.read_buffer[n:]
         return data
-    def _read(self, n):
+    def _read(self, n, timeout=None):
         """Try one read, possibly returning less or more than n bytes."""
         raise NotImplementedError
     def write(self, data):
@@ -182,7 +182,7 @@ class FileCommunication(Communication):
             self.f = open(file_path, 'r+b', buffering=0)
         else:
             self.f = open(file_path, 'r+b')
-    def _read(self, n):
+    def _read(self, n, timeout=None):
         return self.f.read(n)
     def write(self, data):
         self.f.write(data)
@@ -194,7 +194,7 @@ class USBCommunication(Communication):
     EP_OUT = 3
     VENDOR_ID_LG = 0x1004
     # Read timeout. Set to 0 to disable timeouts
-    READ_TIMEOUT_MS = 0
+    READ_TIMEOUT_MS = 60000
     def __init__(self):
         super(USBCommunication, self).__init__()
         # Match device using heuristics on the interface/endpoint descriptors,
@@ -217,9 +217,9 @@ class USBCommunication(Communication):
                 usb.util.ENDPOINT_TYPE_BULK
             for ep in intf
         )
-    def _read(self, n):
+    def _read(self, n, timeout=READ_TIMEOUT_MS):
         # device seems to use 16 KiB buffers.
-        array = self.usbdev.read(self.EP_IN, 2**14, timeout=self.READ_TIMEOUT_MS)
+        array = self.usbdev.read(self.EP_IN, 2**14, timeout=timeout)
         try: return array.tobytes()
         except: return array.tostring()
     def write(self, data):
@@ -236,20 +236,24 @@ def try_hello(comm):
     Tests whether the device speaks the expected protocol. If desynchronization
     is detected, tries to read as much data as possible.
     """
+    # Wait for at most 5 seconds for a response... it shouldn't take that long
+    # and otherwise something is wrong.
+    HELLO_READ_TIMEOUT = 5000
+
     hello_request = make_request(b'HELO', args=[b'\1\0\0\1'])
     comm.write(hello_request)
-    data = comm.read(0x20)
+    data = comm.read(0x20, timeout=HELLO_READ_TIMEOUT)
     if data[0:4] != b'HELO':
         # Unexpected response, maybe some stale data from a previous execution?
         while data[0:4] != b'HELO':
             try:
                 validate_message(data, ignore_crc=True)
                 size = struct.unpack_from('<I', data, 0x14)[0]
-                comm.read(size)
+                comm.read(size, timeout=HELLO_READ_TIMEOUT)
             except RuntimeError: pass
             # Flush read buffer
             comm.reset()
-            data = comm.read(0x20)
+            data = comm.read(0x20, timeout=HELLO_READ_TIMEOUT)
         # Just to be sure, send another HELO request.
         comm.call(hello_request)
 
