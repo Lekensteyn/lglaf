@@ -32,7 +32,7 @@ def get_partitions(comm):
     Maps partition labels (such as "recovery") to block devices (such as
     "mmcblk0p0"), sorted by the number in the block device.
     """
-    name_cmd = 'ls -l /dev/block/platform/*/by-name'
+    name_cmd = 'ls -l /dev/block/bootdevice/by-name'
     output = comm.call(lglaf.make_exec_request(name_cmd))[1]
     output = output.strip().decode('ascii')
     names = []
