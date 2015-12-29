@@ -203,6 +203,16 @@ class USBCommunication(Communication):
                 custom_match = self._match_device)
         if self.usbdev is None:
             raise RuntimeError("USB device not found")
+        cfg = usb.util.find_descriptor(self.usbdev,
+                custom_match=self._match_configuration)
+        current_cfg = self.usbdev.get_active_configuration()
+        if cfg.bConfigurationValue != current_cfg.bConfigurationValue:
+            try:
+                cfg.set()
+            except usb.core.USBError as e:
+                _logger.warning("Failed to set configuration, "
+                        "has a kernel driver claimed the interface?")
+                raise e
     def _match_device(self, device):
         return any(
             usb.util.find_descriptor(cfg, bInterfaceClass=255,
@@ -217,6 +227,9 @@ class USBCommunication(Communication):
                 usb.util.ENDPOINT_TYPE_BULK
             for ep in intf
         )
+    def _match_configuration(self, config):
+        return usb.util.find_descriptor(config,
+                custom_match=self._match_interface)
     def _read(self, n, timeout=READ_TIMEOUT_MS):
         # device seems to use 16 KiB buffers.
         array = self.usbdev.read(self.EP_IN, 2**14, timeout=timeout)
