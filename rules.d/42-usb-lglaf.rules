@@ -1,3 +1,5 @@
 # /etc/udev/rules.d/42-usb-lglaf.rules
-# LG G3 in download mode
+# LG G3 (D855) in download mode
 SUBSYSTEM=="usb", ATTRS{idVendor}=="1004", ATTRS{idProduct}=="633e", TAG+="uaccess"
+# LG G3 (VS985) in download mode
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1004", ATTRS{idProduct}=="627f", TAG+="uaccess"

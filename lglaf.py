@@ -13,7 +13,7 @@ import argparse, logging, re, struct, sys
 try: import readline
 except ImportError: pass
 # Try USB interface
-try: import usb.core
+try: import usb.core, usb.util
 except ImportError: pass
 # Windows registry for serial port detection
 try: import winreg
@@ -192,13 +192,31 @@ class FileCommunication(Communication):
 class USBCommunication(Communication):
     EP_IN = 0x85
     EP_OUT = 3
+    VENDOR_ID_LG = 0x1004
     # Read timeout. Set to 0 to disable timeouts
     READ_TIMEOUT_MS = 0
     def __init__(self):
         super(USBCommunication, self).__init__()
-        self.usbdev = usb.core.find(idVendor=0x1004, idProduct=0x633e)
+        # Match device using heuristics on the interface/endpoint descriptors,
+        # this avoids hardcoding idProduct.
+        self.usbdev = usb.core.find(idVendor=self.VENDOR_ID_LG,
+                custom_match = self._match_device)
         if self.usbdev is None:
             raise RuntimeError("USB device not found")
+    def _match_device(self, device):
+        return any(
+            usb.util.find_descriptor(cfg, bInterfaceClass=255,
+                    bInterfaceSubClass=255, bInterfaceProtocol=255,
+                    custom_match=self._match_interface)
+            for cfg in device
+        )
+    def _match_interface(self, intf):
+        return intf.bNumEndpoints == 2 and all(
+            ep.bEndpointAddress in (self.EP_IN, self.EP_OUT) and
+            usb.util.endpoint_type(ep.bmAttributes) ==
+                usb.util.ENDPOINT_TYPE_BULK
+            for ep in intf
+        )
     def _read(self, n):
         # device seems to use 16 KiB buffers.
         array = self.usbdev.read(self.EP_IN, 2**14, timeout=self.READ_TIMEOUT_MS)

@@ -95,5 +95,6 @@ end
 
 function lglaf.init()
     local usb_product = DissectorTable.get("usb.product");
-    usb_product:add(0x1004633e, lglaf)
+    usb_product:add(0x1004633e, lglaf) -- LG G3 D855
+    usb_product:add(0x1004627f, lglaf) -- LG G3 VS985
 end
