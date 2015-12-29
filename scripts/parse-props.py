@@ -83,7 +83,7 @@ def print_shadow(shadow):
         print("%03x: %-16s %-16s" % (offset, line1, line2))
 
 def parse_data(data):
-    version = struct.unpack_from('<I', data)
+    version = struct.unpack_from('<I', data)[0]
     expected_length = 0x00000b08
     assert version == expected_length, 'Unknown version: 0x%08x' % version
     assert len(data) == expected_length
