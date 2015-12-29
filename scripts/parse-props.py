@@ -3,7 +3,7 @@
 #
 # Usage:
 #
-#   lglaf.py -c '!INFO GPRO \x08\x0b' > props.bin
+#   lglaf.py -c '!INFO GPRO \x08\x0b\0\0' > props.bin
 #   scripts/parse-props.py props.bin
 
 import argparse, sys, struct
@@ -83,8 +83,10 @@ def print_shadow(shadow):
         print("%03x: %-16s %-16s" % (offset, line1, line2))
 
 def parse_data(data):
-    assert data[0:2] == b'\x08\x0b'
-    assert len(data) == 0xb08
+    version = struct.unpack_from('<I', data)
+    expected_length = 0x00000b08
+    assert version == expected_length, 'Unknown version: 0x%08x' % version
+    assert len(data) == expected_length
 
     # Set to non-None when processed
     shadow = [None] * len(data)
@@ -94,13 +96,21 @@ def parse_data(data):
 
     return data, shadow
 
+def open_local_readable(path):
+    if path == '-':
+        try: return sys.stdin.buffer
+        except: return sys.stdin
+    else:
+        return open(path, "rb")
+
 parser = argparse.ArgumentParser()
-parser.add_argument("--debug", action='store_true')
-parser.add_argument("file", help="2824 byte properties dump file")
+parser.add_argument("--debug", action='store_true', help="Enable debug messages")
+parser.add_argument("file",
+        help="2824 byte properties dump file (or '-' for stdin)")
 
 def main():
     args = parser.parse_args()
-    data = open(args.file, "rb").read()
+    data = open_local_readable(args.file).read()
     data, shadow = parse_data(data)
     if args.debug:
         debug_other(data, shadow)

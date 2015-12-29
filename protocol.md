@@ -146,11 +146,12 @@ device (e.g. by writing to an unused partition) and execute:
 ### INFO
 Arguments:
  - arg1: action (`GPRO` - Get Properties, `SPRO` - Set Properties)
-Request body: must begin with two bytes (`08 0b`).
-Response body: 2824 (0xb08) bytes of binary info.
+Request body: a `laf_property` structure.
+Response body: 2824 (0x00000b08) bytes of binary info.
 
 See [scripts/parse-props.py](scripts/parse-props.py) for the structure of the
-property body.
+property body. This structure begins with a DWORD with a version that is
+apparently the same as the expected length (2824 or `\x08\x0b\0\0`).
 
 ### UNLK - Unlink
 Delete a file.
