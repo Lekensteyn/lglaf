@@ -275,16 +275,21 @@ def detect_serial_path():
     try:
         path = r'HARDWARE\DEVICEMAP\SERIALCOMM'
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path) as key:
-            return winreg.QueryValueEx(key, r'\Device\LGANDNETDIAG1')[0]
-    except OSError:
-        return None
+            for i in range(winreg.QueryInfoKey(key)[1]):
+                name, value, value_type = winreg.EnumValue(key, i)
+                # match both \Device\LGANDNETDIAG1 and \Device\LGVZANDNETDIAG1
+                name = name.upper()
+                if name.startswith(r'\DEVICE\LG') and name.endswith('ANDNETDIAG1'):
+                    return value
+    except OSError: pass
+    return None
 
 def autodetect_device():
     if winreg is not None and 'usb.core' not in sys.modules:
         serial_path = detect_serial_path()
         _logger.debug("Using serial port: %s", serial_path)
         if not serial_path:
-            raise RuntimeError("Please install LG drivers or PyUSB")
+            raise RuntimeError("Device not found, try installing LG drivers")
         return FileCommunication(serial_path)
     else:
         if 'usb.core' not in sys.modules:
