@@ -10,6 +10,7 @@ Contents of this repository:
    (convenience script that uses partitions.py under the hood). By default the
    largest partitions (system, cache, cust, userdata) are not dumped though.
    This can be changed with the `--max-size` option.
+ - [dump-file.py](dump-file.py) - dumps a regular file from device.
  - [protocol.md](protocol.md) - Protocol documentation.
  - [lglaf.lua](lglaf.lua) - Wireshark dissector for LG LAF protocol.
  - [scripts/](scripts/) - Miscellaneous scripts.
@@ -32,6 +33,8 @@ Tested with:
 
  - LG G3 (D855) on 64-bit Arch Linux (Python 3.5.1, pyusb 1.0.0b2, libusb 1.0.20)
  - LG G3 (D855) on 32-bit Windows XP (Python 3.4.4, LG drivers).
+ - LG G2 (VS985).
+ - LG G4 (VS986) on Linux (Python 3.5) and Windows.
 
 ## Usage
 This tool provides an interactive shell where you can execute commands in
