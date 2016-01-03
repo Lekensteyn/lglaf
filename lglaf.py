@@ -230,7 +230,9 @@ class USBCommunication(Communication):
     def _match_configuration(self, config):
         return usb.util.find_descriptor(config,
                 custom_match=self._match_interface)
-    def _read(self, n, timeout=READ_TIMEOUT_MS):
+    def _read(self, n, timeout=None):
+        if timeout is None:
+            timeout = self.READ_TIMEOUT_MS
         # device seems to use 16 KiB buffers.
         array = self.usbdev.read(self.EP_IN, 2**14, timeout=timeout)
         try: return array.tobytes()
