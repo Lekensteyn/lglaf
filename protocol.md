@@ -130,18 +130,24 @@ reboot, everything was zeroed out though.
 
 ### EXEC - Execute Command
 Arguments: none
-Request body: NUL-terminated command.
+Request body: NUL-terminated command, at most 255 bytes including terminator.
 Response body: standard output of the command.
 
-The command is probably split on space and then passes to `execve`. In order to
-see standard error, use variables and globbing, use a command such as:
+The command is split on spaces and then passed to `execvp`. In order to see
+standard error, use variables and globbing, use a command such as:
 
-    sh -c "$@" -- eval 2>&1 </dev/null echo $PATH
+    sh -c eval\t"$*"</dev/null\t2>&1 -- echo $PATH
+
+(replace `\t` by tabs)
 
 If you need to read dmesg (or other blocking files), try to put busybox on the
 device (e.g. by writing to an unused partition) and execute:
 
     /data/busybox timeout -s 2 cat /proc/kmsg
+
+The maximum output size appears to be 0x800001 (`LAF_MAX_DATA_PAYLOAD`). Larger
+values result in an error. Output is read per byte, not very efficient for large
+output...
 
 ### INFO
 Arguments:

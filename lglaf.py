@@ -126,11 +126,14 @@ def validate_message(payload, ignore_crc=False):
         raise RuntimeError("Expected trailer %r, found %r" % (tail_exp, tail))
 
 def make_exec_request(shell_command):
-    # Allow use of shell constructs such as piping. Needs more work not to eat
-    # all repetitive spaces, it should also escape some things...
-    body = b'sh -c "$@" -- eval 2>&1 </dev/null '
-    body += shell_command.encode('ascii') + b'\0'
-    return make_request(b'EXEC', body=body)
+    # Allow use of shell constructs such as piping and reports syntax errors
+    # such as unterminated quotes. Remaining limitation: repetitive spaces are
+    # still eaten.
+    argv = b'sh -c eval\t"$*"</dev/null\t2>&1 -- '
+    argv += shell_command.encode('ascii')
+    if len(argv) > 255:
+        raise RuntimeError("Command length %d is larger than 255" % len(argv))
+    return make_request(b'EXEC', body=argv + b'\0')
 
 
 ### USB or serial port communication
