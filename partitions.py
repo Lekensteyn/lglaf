@@ -225,7 +225,7 @@ parser.add_argument("--list", action='store_true',
         help='List available partitions')
 parser.add_argument("--dump", metavar="LOCAL_PATH",
         help="Dump partition to file ('-' for stdout)")
-parser.add_argument("--load", metavar="LOCAL_PATH",
+parser.add_argument("--restore", metavar="LOCAL_PATH",
         help="Write file to partition on device ('-' for stdin)")
 parser.add_argument("--wipe", action='store_true',
         help="TRIMs a partition")
@@ -238,11 +238,11 @@ def main():
     logging.basicConfig(format='%(asctime)s %(name)s: %(levelname)s: %(message)s',
             level=logging.DEBUG if args.debug else logging.INFO)
 
-    actions = (args.list, args.dump, args.load, args.wipe)
+    actions = (args.list, args.dump, args.restore, args.wipe)
     if sum(1 if x else 0 for x in actions) != 1:
         parser.error("Please specify one action from"
-        " --list / --dump / --load / --wipe")
-    if not args.partition and (args.dump or args.load or args.wipe):
+        " --list / --dump / --restore / --wipe")
+    if not args.partition and (args.dump or args.restore or args.wipe):
         parser.error("Please specify a partition")
 
     comm = lglaf.autodetect_device()
@@ -266,8 +266,8 @@ def main():
             _logger.debug("Opened fd %d for disk", disk_fd)
             if args.dump:
                 dump_partition(comm, disk_fd, args.dump, part_offset, part_size)
-            elif args.load:
-                write_partition(comm, disk_fd, args.load, part_offset, part_size)
+            elif args.restore:
+                write_partition(comm, disk_fd, args.restore, part_offset, part_size)
             elif args.wipe:
                 wipe_partition(comm, disk_fd, part_offset, part_size)
 
