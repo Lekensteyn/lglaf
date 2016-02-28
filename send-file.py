@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 import lglaf
+
+import argparse
 import sys
 
 
@@ -8,7 +10,8 @@ comm = lglaf.autodetect_device()
 
 def make_exec_request(shell_command):
   argv = b'sh -c eval\t"$*"\t -- '
-  argv += shell_command.encode('ascii')
+  argv += shell_command.encode('ascii') if isinstance(shell_command, str) else shell_command
+
   if len(argv) > 255:
     raise RuntimeError("Command length %d is larger than 255" % len(argv))
 
@@ -16,39 +19,44 @@ def make_exec_request(shell_command):
 
 
 def send_command(cmd):
-	cmd = make_exec_request(cmd)
-	return comm.call(cmd)[1]
+  cmd = make_exec_request(cmd)
+  return comm.call(cmd)[1]
 
 
 def send_file(src, dst):
-	with open(src, 'rb') as fp:
-		fp.seek(0, 2)
-		size = fp.tell()
-		fp.seek(0)
+  with open(src, 'rb') as fp:
+    fp.seek(0, 2)
+    size = fp.tell()
+    fp.seek(0)
 
-		# 33 = len('sh -c eval\t"$*"\t -- echo -en "">>')
-		block_size = (255 - (33 + len(dst))) / 4
-		send_command(b'echo -n>' + dst.encode('ascii'))
-		writed = 0
+    overhead = len('sh -c eval\t"$*"\t -- printf "">>')
+    block_size = (255 - (overhead + len(dst))) // 4
+    send_command(b'printf >' + dst.encode('ascii'))
+    written = 0
 
-		while True:
-			data = fp.read(block_size)
-			if not data:
-				break
+    while True:
+      data = fp.read(block_size)
+      if not data:
+        break
 
-			hexstr = b''.join(b'\\x%02x' % ord(ch) for ch in data)
-			send_command(b'echo -en "{0}">>{1}'.format(hexstr, dst))
+      dlen = len(data)
 
-			writed += len(data)
-			sys.stderr.write('\rSending... %.2f%% ' % (float(writed) / size * 100))
+      if isinstance(data, str):
+        data = [ord(ch) for ch in data]
 
-		sys.stderr.write('\n')
+      hexstr = ''.join('\\x{:02x}'.format(ch) for ch in data)
+      send_command('printf "{0}">>{1}'.format(hexstr, dst))
+
+      written += dlen
+      sys.stderr.write('\rSending... %.2f%% ' % (100.0 * written / size))
+
+    sys.stderr.write('\n')
 
 
+parser = lglaf.parser
 
-if len(sys.argv) != 3:
-	print 'Usage: {0} <local> <remote>'.format(sys.argv[0])
-	exit(1)
+parser.add_argument('local')
+parser.add_argument('remote')
+args = parser.parse_args()
 
-
-send_file(sys.argv[1], sys.argv[2])
+send_file(args.local, args.remote)
