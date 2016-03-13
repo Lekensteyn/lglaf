@@ -193,8 +193,6 @@ class FileCommunication(Communication):
         self.f.close()
 
 class USBCommunication(Communication):
-    EP_IN = 0x85
-    EP_OUT = 3
     VENDOR_ID_LG = 0x1004
     # Read timeout. Set to 0 to disable timeouts
     READ_TIMEOUT_MS = 60000
@@ -216,16 +214,30 @@ class USBCommunication(Communication):
                 _logger.warning("Failed to set configuration, "
                         "has a kernel driver claimed the interface?")
                 raise e
+        for intf in cfg:
+            if self._match_interface(intf):
+                self._set_interface(intf)
+        assert self.ep_in
+        assert self.ep_out
     def _match_device(self, device):
         return any(
-            usb.util.find_descriptor(cfg, bInterfaceClass=255,
-                    bInterfaceSubClass=255, bInterfaceProtocol=255,
-                    custom_match=self._match_interface)
+            usb.util.find_descriptor(cfg, custom_match=self._match_interface)
             for cfg in device
         )
+    def _set_interface(self, intf):
+        for ep in intf:
+            ep_dir = usb.util.endpoint_direction(ep.bEndpointAddress)
+            if ep_dir == usb.util.ENDPOINT_IN:
+                self.ep_in = ep.bEndpointAddress
+            else:
+                self.ep_out = ep.bEndpointAddress
+        _logger.debug("Using endpoints %02x (IN), %02x (OUT)",
+                self.ep_in, self.ep_out)
     def _match_interface(self, intf):
-        return intf.bNumEndpoints == 2 and all(
-            ep.bEndpointAddress in (self.EP_IN, self.EP_OUT) and
+        return intf.bInterfaceClass == 255 and \
+            intf.bInterfaceSubClass == 255 and \
+            intf.bInterfaceProtocol == 255 and \
+            intf.bNumEndpoints == 2 and all(
             usb.util.endpoint_type(ep.bmAttributes) ==
                 usb.util.ENDPOINT_TYPE_BULK
             for ep in intf
@@ -237,7 +249,7 @@ class USBCommunication(Communication):
         if timeout is None:
             timeout = self.READ_TIMEOUT_MS
         # device seems to use 16 KiB buffers.
-        array = self.usbdev.read(self.EP_IN, 2**14, timeout=timeout)
+        array = self.usbdev.read(self.ep_in, 2**14, timeout=timeout)
         try: return array.tobytes()
         except: return array.tostring()
     def write(self, data):
@@ -245,7 +257,7 @@ class USBCommunication(Communication):
         if self.read_buffer:
             _logger.warn('non-empty read buffer %r', self.read_buffer)
             self.read_buffer = b''
-        self.usbdev.write(self.EP_OUT, data)
+        self.usbdev.write(self.ep_out, data)
     def close(self):
         usb.util.dispose_resources(self.usbdev)
 
