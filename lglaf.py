@@ -215,6 +215,10 @@ class USBCommunication(Communication):
                         "has a kernel driver claimed the interface?")
                 raise e
         for intf in cfg:
+            if self.usbdev.is_kernel_driver_active(intf.bInterfaceNumber):
+                _logger.debug("Detaching kernel driver for intf %d",
+                        intf.bInterfaceNumber)
+                self.usbdev.detach_kernel_driver(intf.bInterfaceNumber)
             if self._match_interface(intf):
                 self._set_interface(intf)
         assert self.ep_in
