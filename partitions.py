@@ -8,8 +8,9 @@
 from __future__ import print_function
 from collections import OrderedDict
 from contextlib import closing, contextmanager
-import argparse, logging, os, struct, sys
+import argparse, logging, os, struct, sys, time
 import lglaf
+import usb.core, usb.util
 
 _logger = logging.getLogger("partitions")
 
@@ -80,11 +81,42 @@ def laf_open_disk(comm):
 def laf_read(comm, fd_num, offset, size):
     """Read size bytes at the given block offset."""
     read_cmd = lglaf.make_request(b'READ', args=[fd_num, offset, size])
-    header, response = comm.call(read_cmd)
+    for attempt in range(3):
+        try:
+            header, response = comm.call(read_cmd)
+            break
+        except usb.core.USBError as e:
+            if e.strerror == 'Overflow':
+                _logger.debug("Overflow on READ %d %d %d", fd_num, offset, size)
+                for attempt in range(3):
+                  try:
+                    comm.reset()
+                    comm._read(-1) # clear line
+                    break
+                  except usb.core.USBError: pass
+                continue
+            elif e.strerror == 'Operation timed out':
+                _logger.debug("Timeout on READ %d %d %d", fd_num, offset, size)
+                comm.close()
+                time.sleep(3)
+                comm.__init__()
+                try:
+                  lglaf.try_hello(comm)
+                except usb.core.USBError: pass
+                close_cmd = lglaf.make_request(b'CLSE', args=[fd_num])
+                comm.call(close_cmd)
+                open_cmd = lglaf.make_request(b'OPEN', body=b'\0')
+                open_header = comm.call(open_cmd)[0]
+                fd_num = read_uint32(open_header, 4)
+                read_cmd = lglaf.make_request(b'READ', args=[fd_num, offset, size])
+                continue
+            else:
+                raise # rethrow
+
     # Ensure that response fd, offset and length are sane (match the request)
     assert read_cmd[4:4+12] == header[4:4+12], "Unexpected read response"
     assert len(response) == size
-    return response
+    return response, fd_num
 
 def laf_erase(comm, fd_num, sector_start, sector_count):
     """TRIM some sectors."""
@@ -155,13 +187,13 @@ def dump_partition(comm, disk_fd, local_path, part_offset, part_size):
         # whole block and drop the leading bytes.
         if unaligned_bytes:
             chunksize = min(end_offset - read_offset, BLOCK_SIZE)
-            data = laf_read(comm, disk_fd, read_offset // BLOCK_SIZE, chunksize)
+            data, disk_fd = laf_read(comm, disk_fd, read_offset // BLOCK_SIZE, chunksize)
             f.write(data[unaligned_bytes:])
             read_offset += BLOCK_SIZE
 
         while read_offset < end_offset:
             chunksize = min(end_offset - read_offset, BLOCK_SIZE * MAX_BLOCK_SIZE)
-            data = laf_read(comm, disk_fd, read_offset // BLOCK_SIZE, chunksize)
+            data, disk_fd = laf_read(comm, disk_fd, read_offset // BLOCK_SIZE, chunksize)
             f.write(data)
             read_offset += chunksize
         _logger.info("Wrote %d bytes to %s", part_size, local_path)

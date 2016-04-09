@@ -38,9 +38,9 @@ function lglaf.dissector(tvb, pinfo, tree)
     local endpoint = usb_endpoint().value
 
     -- Process only bulk packets from (EP 5) and to the device (EP 3)
-    if not ((endpoint == 0x85 or endpoint == 3) and transfer_type == 3) then
-        return 0
-    end
+    -- if not ((endpoint == 0x85 or endpoint == 3) and transfer_type == 3) then
+    --    return 0
+    -- end
 
     pinfo.cols.protocol = lglaf.name
 

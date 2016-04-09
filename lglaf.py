@@ -195,7 +195,7 @@ class FileCommunication(Communication):
 class USBCommunication(Communication):
     VENDOR_ID_LG = 0x1004
     # Read timeout. Set to 0 to disable timeouts
-    READ_TIMEOUT_MS = 60000
+    READ_TIMEOUT_MS = 6000
     def __init__(self):
         super(USBCommunication, self).__init__()
         # Match device using heuristics on the interface/endpoint descriptors,
