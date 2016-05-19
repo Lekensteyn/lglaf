@@ -41,10 +41,11 @@ This tool provides an interactive shell where you can execute commands in
 Download Mode. To enter this mode:
 
  1. Power off the phone.
- 2. Press and hold **Volume up**.
- 3. Connect the phone to a computer using a USB cable.
- 4. Wait for the **Download mode** screen to appear.
- 5. Release keys. You should now see a **Firmware Update** screen.
+ 2. Connect the phone to a computer using a USB cable.
+ 3. Press and hold **Volume up**.
+ 4. Briefly press the power button.
+ 5. Wait for the **Download mode** screen to appear.
+ 6. Release keys. You should now see a **Firmware Update** screen.
 
 Now you can issue commands using the interactive shell:
 
