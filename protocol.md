@@ -176,7 +176,7 @@ Arguments: none
 Unknown.
 
 ### MISC
-Unknown.
+WRTE, READ or DAER ETRW or ERDA RWET
 
 ### KILO
 Unknown.
@@ -195,7 +195,7 @@ Unknown.
 ### CRCC
 Unknown.
 ### FAIL
-Unknown.
+"why call me! someday will be use? error"
 ### HELO
 Unknown.
 
