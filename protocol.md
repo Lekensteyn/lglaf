@@ -184,6 +184,21 @@ Unknown.
 ### DIFF
 Unknown.
 
+### SNIF
+Unknown.
+### OPCM
+Unknown.
+### CHCK
+Unknown.
+### FUSE
+Unknown.
+### CRCC
+Unknown.
+### FAIL
+Unknown.
+### HELO
+Unknown.
+
 ## USB layer
 The LG Windows driver (via `LGMobileDriver_WHQL_Ver_4.0.3.exe`) exposes two
 serial ports, `LGANDNETMDM0` and `LGANDNETDIAG1`. The `LGANDNETDIAG1` port is
