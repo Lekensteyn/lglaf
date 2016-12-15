@@ -373,6 +373,9 @@ def main():
             level=logging.DEBUG if args.debug else logging.INFO)
 
     # Binary stdout (output data from device as-is)
+    if sys.platform == "win32":
+        import os, msvcrt
+        msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
     try: stdout_bin = sys.stdout.buffer
     except: stdout_bin = sys.stdout
 
