@@ -9,7 +9,11 @@
 local lglaf = Proto("lglaf", "LG LAF")
 
 local usb_transfer_type = Field.new("usb.transfer_type")
-local usb_endpoint = Field.new("usb.endpoint_number")
+local success, usb_endpoint = pcall(Field.new, "usb.endpoint_number")
+if not success then
+    -- Renamed since Wireshark v2.3.0rc0-1710-gf27f048ee1
+    usb_endpoint = Field.new("usb.endpoint_address")
+end
 
 lglaf.fields.cmd = ProtoField.string("lglaf.command", "Command")
 lglaf.fields.arg1 = ProtoField.uint32("lglaf.arg1", "Argument 1", base.HEX_DEC)
