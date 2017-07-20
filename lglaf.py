@@ -29,6 +29,65 @@ except: pass
 if '\0' == b'\0': int_as_byte = chr
 else: int_as_byte = lambda x: bytes([x])
 
+
+laf_error_codes = {
+    0x80000000: "FAILED",
+    0x80000001: "INVALID_PARAMETER",
+    0x80000002: "INVALID_HANDLE",
+    0x80000003: "DEVICE_NOT_SUPPORTED",
+    0x80000004: "INTERNAL_ERROR",
+    0x80000005: "TIMEOUT",
+    0x8000000F: "MORE_HEADER_DATA",
+    0x80000010: "MORE_DATA",
+    0x80000011: "INVALID_DATA",
+    0x80000012: "INVALID_DATA_LENGTH",
+    0x80000013: "INVALID_PACKET",
+    0x80000016: "CRC_CHECKSUM",
+    0x80000017: "CMD_CODE",
+    0x80000018: "OUTOFMEMORY",
+    0x80000105: "INVALID_NAME",
+    0x80000106: "NOT_CONNECTED",
+    0x80000107: "CANNOT_MAKE",
+    0x80000108: "FILE_NOT_FOUND",
+    0x80000109: "NOT_ENOUGH_QUOTA",
+    0x8000010a: "ACCESS_DENIED",
+    0x8000010c: "CANCELLED",
+    0x8000010d: "CONNECTION_ABORTED",
+    0x8000010e: "CONTINUE",
+    0x8000010f: "GEN_FAILURE",
+    0x80000110: "INCORRECT_ADDRESS",
+    0x80000111: "INVALID_CATEGORY",
+    0x80000112: "REQUEST_ABORTED",
+    0x80000113: "RETRY",
+    0x80000116: "DEVICE_NOT_AVAILABLE",
+    0x80000201: "IDT_MISMATCH_MODELNAME",
+    0x80000202: "IDT_DECOMPRES_FAILED",
+    0x80000203: "IDT_INVALID_OPTION",
+    0x80000204: "IDT_DECOMPRESS_END_FAILED",
+    0x80000205: "IDT_DZ_HEADER",
+    0x80000206: "IDT_RETRY_COUNT",
+    0x80000207: "IDT_HEADER_SIZE",
+    0x80000208: "IDT_TOT_MAGIC",
+    0x80000209: "UDT_DZ_HEADER_SIZE",
+    0x81000302: "INVALID_RESPONSE",
+    0x81000305: "FAILED_INSERT_QUEUE",
+    0x81000306: "FAILED_POP_QUEUE",
+    0x81000307: "INVALID_LAF_PROTOCOL",
+    0x81000308: "ERASE_FAILED",
+    0x81000309: "WEBFLAG_RESET_FAIL",
+    0x81000401: "FLASHING_FAIL",
+    0x81000402: "SECURE_FAIL",
+    0x81000403: "BUILD_TYPE_FAIL",
+    0x81000404: "CHECK_USER_SPC",
+    0x81000405: "FBOOT_CHECK_FAIL",
+    0x81000406: "INIT_FAIL",
+    0x81000407: "FRST_FLAG_FAIL",
+    0x81000408: "POWER_OFF_FAIL",
+    0x8100040a: "PRL_READ_FAIL",
+    0x81000409: "PRL_WRITE_FAIL",
+}
+
+
 _ESCAPE_PATTERN = re.compile(b'''\\\\(
 x[0-9a-fA-F]{2} |
 [0-7]{1,3} |
@@ -172,8 +231,9 @@ class Communication(object):
         # could validate CRC and inverted command here...
         data = self.read(size) if size else b''
         if cmd == b'FAIL':
-            errCode = struct.unpack_from('<I', header, 4)
-            raise RuntimeError('Command failed with error code %#x' % errCode)
+            errCode = struct.unpack_from('<I', header, 4)[0]
+            msg = 'LAF_ERROR_%s' % laf_error_codes.get(errCode, '<unknown>')
+            raise RuntimeError('Command failed with error code %#x (%s)' % (errCode, msg))
         if cmd != payload[0:4]:
             raise RuntimeError("Unexpected response: %r" % header)
         return header, data
