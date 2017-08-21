@@ -36,7 +36,7 @@ Tested with:
  - LG G3 (D855) on 32-bit Windows XP (Python 3.4.4, LG drivers).
  - LG G2 (VS985).
  - LG G4 (VS986) on Linux (Python 3.5) and Windows.
- - LG G4 (H810,H811,H812,H815) on 64 bit Arch Linux | FWUL (Python 2.7.13, pyusb 1.0.0-5, libusb 1.0.21-2)
+ - LG G4 (H810,H811,H812,H815) on 64 bit Arch Linux | [FWUL](https://tinyurl.com/FWULatXDA) (Python 2.7.13, pyusb 1.0.0-5, libusb 1.0.21-2)
 
 ## Usage
 This tool provides an interactive shell where you can execute commands in
