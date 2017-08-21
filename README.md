@@ -4,6 +4,7 @@ allows you to execute arbitrary shell commands on a LG phone as root.
 
 Contents of this repository:
 
+ - [auth.py](auth.py) - challenge/response on newer devices (see below).
  - [lglaf.py](lglaf.py) - main script for communication (see below).
  - [partitions.py](partitions.py) - manage (list / read / write) partitions.
  - [extract-partitions.py](extract-partitions.py) - Dump all partitions
@@ -35,6 +36,7 @@ Tested with:
  - LG G3 (D855) on 32-bit Windows XP (Python 3.4.4, LG drivers).
  - LG G2 (VS985).
  - LG G4 (VS986) on Linux (Python 3.5) and Windows.
+ - LG G4 (H810,H811,H812,H815) on 64 bit Arch Linux | FWUL (Python 2.7.13, pyusb 1.0.0-5, libusb 1.0.21-2)
 
 ## Usage
 This tool provides an interactive shell where you can execute commands in
@@ -59,6 +61,13 @@ Now you can issue commands using the interactive shell:
     # cat /proc/version
     Linux version 3.4.0-perf-gf95c7ee (lgmobile@LGEARND12B2) (gcc version 4.8 (GCC) ) #1 SMP PREEMPT Tue Aug 18 19:25:04 KST 2015
     # exit
+
+Some devices require a challenge/response before communication is possible (only needed once after entering download mode):
+
+    (venv)[peter@al lglaf]$ python auth.py --debug
+    LGLAF.py: DEBUG: Using endpoints 83 (IN), 02 (OUT)
+    auth: DEBUG: Challenge: c4:af:ff:aa
+    auth: DEBUG: Response: 12:7a:c2:c2:87:0e:06:5d:a2:a4:c3:8c:a2:12:12:12
 
 When commands are piped to stdin (or given via `-c`), the prompt is hidden:
 
