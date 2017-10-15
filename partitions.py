@@ -232,6 +232,8 @@ parser.add_argument("--wipe", action='store_true',
 parser.add_argument("partition", nargs='?',
         help="Partition number (e.g. 1 for block device mmcblk0p1)"
         " or partition name (e.g. 'recovery')")
+parser.add_argument("--skip-hello", action="store_true",
+        help="Immediately send commands, skip HELO message")
 
 def main():
     args = parser.parse_args()
@@ -247,7 +249,9 @@ def main():
 
     comm = lglaf.autodetect_device()
     with closing(comm):
-        lglaf.try_hello(comm)
+        
+        if not args.skip_hello:
+            lglaf.try_hello(comm)
 
         if args.list:
             list_partitions(comm, args.partition)
