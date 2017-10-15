@@ -300,7 +300,7 @@ class USBCommunication(Communication):
     def _match_interface(self, intf):
         return intf.bInterfaceClass == 255 and \
             intf.bInterfaceSubClass == 255 and \
-            intf.bInterfaceProtocol == 255 and \
+            intf.bInterfaceProtocol in (0, 255) and \
             intf.bNumEndpoints == 2 and all(
             usb.util.endpoint_type(ep.bmAttributes) ==
                 usb.util.ENDPOINT_TYPE_BULK
