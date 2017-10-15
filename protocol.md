@@ -176,12 +176,27 @@ Arguments: none
 Unknown.
 
 ### MISC
-Unknown.
+WRTE, READ or DAER ETRW or ERDA RWET
 
 ### KILO
 Unknown.
 
 ### DIFF
+Unknown.
+
+### SNIF
+Unknown.
+### OPCM
+Unknown.
+### CHCK
+Unknown.
+### FUSE
+Unknown.
+### CRCC
+Unknown.
+### FAIL
+"why call me! someday will be use? error"
+### HELO
 Unknown.
 
 ## USB layer
