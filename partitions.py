@@ -37,6 +37,8 @@ def get_partitions(comm):
     output = output.strip().decode('ascii')
     names = []
     for line in output.strip().split("\n"):
+        if(line.split()[0] == 'total'):
+            continue
         label, arrow, path = line.split()[-3:]
         assert arrow == '->', "Expected arrow in ls output"
         blockdev = path.split('/')[-1]
