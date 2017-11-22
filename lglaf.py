@@ -184,11 +184,15 @@ def validate_message(payload, ignore_crc=False):
     if tail_exp != tail:
         raise RuntimeError("Expected trailer %r, found %r" % (tail_exp, tail))
 
-def make_exec_request(shell_command):
+def make_exec_request(shell_command, rawshell):
     # Allow use of shell constructs such as piping and reports syntax errors
     # such as unterminated quotes. Remaining limitation: repetitive spaces are
     # still eaten.
-    argv = b'sh -c eval\t"$*"</dev/null\t2>&1 -- '
+    # If rawshell is set, execute the command as it's provided
+    if rawshell:
+        argv = b''
+    else:
+        argv = b'sh -c eval\t"$*"</dev/null\t2>&1 -- '
     argv += shell_command.encode('ascii')
     if len(argv) > 255:
         raise RuntimeError("Command length %d is larger than 255" % len(argv))
@@ -405,10 +409,10 @@ def get_commands(command):
         if prompt:
             print("", file=sys.stderr)
 
-def command_to_payload(command):
+def command_to_payload(command, rawshell):
     # Handle '!' as special commands, treat others as shell command
     if command[0] != '!':
-        return make_exec_request(command)
+        return make_exec_request(command, rawshell)
     command = command[1:]
     # !command [arg1[,arg2[,arg3[,arg4]]]] [body]
     # args are treated as integers (decimal or hex)
@@ -422,6 +426,8 @@ def command_to_payload(command):
 parser = argparse.ArgumentParser(description='LG LAF Download Mode utility')
 parser.add_argument("--skip-hello", action="store_true",
         help="Immediately send commands, skip HELO message")
+parser.add_argument('--rawshell', action="store_true",
+        help="Execute shell commands as-is, needed on recent devices")
 parser.add_argument("-c", "--command", help='Shell command to execute')
 parser.add_argument("--serial", metavar="PATH", dest="serial_path",
         help="Path to serial device (e.g. COM4).")
@@ -447,7 +453,7 @@ def main():
             _logger.debug("Hello done, proceeding with commands")
         for command in get_commands(args.command):
             try:
-                payload = command_to_payload(command)
+                payload = command_to_payload(command, args.rawshell)
                 header, response = comm.call(payload)
                 # For debugging, print header
                 if command[0] == '!':
