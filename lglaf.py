@@ -427,7 +427,8 @@ parser = argparse.ArgumentParser(description='LG LAF Download Mode utility')
 parser.add_argument("--skip-hello", action="store_true",
         help="Immediately send commands, skip HELO message")
 parser.add_argument('--rawshell', action="store_true",
-        help="Execute shell commands as-is, needed on recent devices")
+        help="Execute shell commands as-is, needed on recent devices. "
+             "CAUTION: stderr output is not redirected!")
 parser.add_argument("-c", "--command", help='Shell command to execute')
 parser.add_argument("--serial", metavar="PATH", dest="serial_path",
         help="Path to serial device (e.g. COM4).")
