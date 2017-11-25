@@ -246,12 +246,63 @@ The response must decrypt to the bytes
 ### DIFF
 Execute a script of some sort, path specified in message body.
 
+### SNIF
+Unknown / looks related to TOT download (TODO: document this)
+
+Arguments:
+ - arg1: Subcommand
+    - `REQS`
+    - `OPEN`
+    - `WRTE`
+    - `CLSE`
+    - `STUS`
+    - `IDDD`
+
+### OPCM
+Check/Write opcode
+
+NOTE: Supported since Protocol version `0x1000004`
+
+Arguments:
+ - arg1: action (`CHEK` - Check opcode, `WRTE` - Write opcode)
+
+### FUSE
+Get or set efuse(s) (TODO: document this)
+
+Arguments:
+ - arg1: action (`GFUS` - Get efuse state, `SFRS` - Set/blow efuse)
+
+### WRZR
+Write zeroes
+
+### CRCC
+Calculcate CRC (TODO: document this)
+
+### CHCK
+Unknown (TODO: document this)
+
+NOTE: Supported since Protocol version `0x1000003`
+
+Arguments:
+ - arg1: Subcommand
+    - `TSUM`
+    - `CLER`
+
+### SEBP
+Set eMMC boot partition (TODO: document this)
+
+### SBLU
+Set UFS boot LUN# (TODO: document this)
+
+### MBPT
+Manipulate boot partition table (TODO: document this)
+
 ### FAIL
 Dummy command.
 
 ### new versions
 TODO: document these commands added in some version:
-CRCC, TOFF, COPY, CHCK, OPCM, SNIF, SEBP, SBLU, SLEI, SIGN, MBPT, WRZR, FUSE
+TOFF, COPY, SLEI, SIGN
 
 
 ## HDLC commands
