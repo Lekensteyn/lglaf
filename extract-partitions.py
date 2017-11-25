@@ -23,9 +23,12 @@ parser.add_argument("--skip-hello", action="store_true",
         help="Immediately send commands, skip HELO message")
 
 def dump_partitions(comm, disk_fd, outdir, max_size):
-    parts = partitions.get_partitions(comm)
-    for part_label, part_name in parts.items():
-        part_offset, part_size = partitions.partition_info(comm, part_name)
+    diskinfo = partitions.get_partitions(comm, disk_fd)
+    for part in diskinfo.gpt.partitions:
+        part_offset = part.first_bla * partitions.BLOCK_SIZE
+        part_size = (part.last_lba - part.first_bla) * partitions.BLOCK_SIZE
+        part_name = part.name
+        part_label = "/dev/mmcblk0p%i" % part.index
         if max_size and part_size > max_size:
             _logger.info("Ignoring large partition %s (%s) of size %dK",
                     part_label, part_name, part_size / 1024)
