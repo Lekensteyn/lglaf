@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 from contextlib import closing
-import argparse, logging, re, struct, sys
+import argparse, logging, re, struct, sys, binascii
 
 # Enhanced prompt with history
 try: import readline
@@ -29,6 +29,15 @@ except: pass
 if '\0' == b'\0': int_as_byte = chr
 else: int_as_byte = lambda x: bytes([x])
 
+# laf crypto for KILO challenge/response
+try:
+    import laf_crypto
+except ImportError:
+    _logger.warning("LAF Crypto failed to import!")
+    pass
+
+# Use Manufacturer key for KILO challenge/response
+USE_MFG_KEY = False
 
 laf_error_codes = {
     0x80000000: "FAILED",
@@ -329,6 +338,24 @@ class USBCommunication(Communication):
     def close(self):
         usb.util.dispose_resources(self.usbdev)
 
+def challenge_response(comm, mode):
+    request_kilo = make_request(b'KILO', args=[b'CENT', b'\0\0\0\0', b'\0\0\0\0', b'\0\0\0\0'])
+    kilo_header, kilo_response = comm.call(request_kilo)
+    kilo_challenge = kilo_header[8:12]
+    _logger.debug("Challenge: %s" % binascii.hexlify(kilo_challenge))
+    if USE_MFG_KEY:
+        key = b'lgowvqnltpvtgogwswqn~n~mtjjjqxro'
+    else:
+        key = b'qndiakxxuiemdklseqid~a~niq,zjuxl'
+    kilo_response = laf_crypto.encrypt_kilo_challenge(key, kilo_challenge)
+    _logger.debug("Response: %s" % binascii.hexlify(kilo_response))
+    mode_bytes = struct.pack('<I', mode)
+    kilo_metr_request = make_request(b'KILO', args=[b'METR', b'\0\0\0\0', mode_bytes, b'\0\0\0\0'],
+                                     body=bytes(kilo_response))
+    metr_header, metr_response = comm.call(kilo_metr_request)
+    _logger.debug("KILO METR Response -> Header: %s, Body: %s" % (
+        binascii.hexlify(metr_header), binascii.hexlify(metr_response)))
+
 def try_hello(comm):
     """
     Tests whether the device speaks the expected protocol. If desynchronization
@@ -426,6 +453,8 @@ def command_to_payload(command, rawshell):
 parser = argparse.ArgumentParser(description='LG LAF Download Mode utility')
 parser.add_argument("--skip-hello", action="store_true",
         help="Immediately send commands, skip HELO message")
+parser.add_argument("--cr", action="store_true",
+        help="Do initial challenge response (KILO CENT/METR)")
 parser.add_argument('--rawshell', action="store_true",
         help="Execute shell commands as-is, needed on recent devices. "
              "CAUTION: stderr output is not redirected!")
@@ -449,6 +478,11 @@ def main():
         comm = autodetect_device()
 
     with closing(comm):
+        if args.cr:
+            # Mode 2 seems standard, will maybe
+            # change in other protocol versions
+            _logger.debug("Doing KILO challenge response")
+            challenge_response(comm, mode=2)
         if not args.skip_hello:
             try_hello(comm)
             _logger.debug("Hello done, proceeding with commands")

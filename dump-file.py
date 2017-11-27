@@ -15,14 +15,21 @@ def read_uint32(data, offset):
     return struct.unpack_from('<I', data, offset)[0]
 
 def get_file_size(comm, path):
-    shell_command = b'stat -t ' + path.encode('utf8') + b'\0'
+    shell_command = b'ls -ld ' + path.encode('utf8') + b'\0'
     output = comm.call(lglaf.make_request(b'EXEC', body=shell_command))[1]
     output = output.decode('utf8')
-    if not output.startswith(path + ' '):
-        _logger.debug("Output: %r", output)
-        raise RuntimeError("Cannot get filesize for %s" % path)
-    size_bytes = output.lstrip(path + ' ').split()[0]
-    return int(size_bytes)
+    if not len(output):
+        raise RuntimeError("Cannot find file %s" % path)
+    # Example output: "-rwxr-x--- root     root       496888 1970-01-01 00:00 lafd"
+    # Accommodate for varying ls output
+    fields = output.split()
+    if len(fields) >= 7:
+        for field in fields[3:]:
+            if field.isdigit():
+                return int(field)
+
+    _logger.debug("ls output: %s", output)
+    raise RuntimeError("Cannot find filesize for path %s" % path)
 
 @contextmanager
 def laf_open_ro(comm, filename):
