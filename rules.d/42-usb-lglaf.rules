@@ -5,3 +5,5 @@ SUBSYSTEM=="usb", ATTRS{idVendor}=="1004", ATTRS{idProduct}=="633e", TAG+="uacce
 SUBSYSTEM=="usb", ATTRS{idVendor}=="1004", ATTRS{idProduct}=="627f", TAG+="uaccess"
 # LG G4 (VS986) in download mode
 SUBSYSTEM=="usb", ATTRS{idVendor}=="1004", ATTRS{idProduct}=="6298", TAG+="uaccess"
+# LG G3 (D852) in download mode
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1004", ATTRS{idProduct}=="633a", TAG+="uaccess"
