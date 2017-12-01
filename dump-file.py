@@ -60,9 +60,8 @@ def laf_read(comm, fd_num, offset, size):
 MAX_BLOCK_SIZE = (16 * 1024 - 512) // 512
 BLOCK_SIZE = 512
 
-def dump_file(comm, file_fd, output_file, size):
+def dump_file(comm, file_fd, output_file, size, offset=0):
     with open_local_writable(output_file) as f:
-        offset = 0
         while offset < size:
             chunksize = min(size - offset, BLOCK_SIZE * MAX_BLOCK_SIZE)
             data = laf_read(comm, file_fd, offset // BLOCK_SIZE, chunksize)
@@ -79,6 +78,8 @@ def open_local_writable(path):
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--debug", action='store_true', help="Enable debug messages")
+parser.add_argument("--offset", type=int, default=0,
+        help="Start reading the file from an offset")
 parser.add_argument("--size", type=int,
         help="Override file size (useful for files in /proc)")
 parser.add_argument("file", help="File path on the device")
@@ -97,14 +98,20 @@ def main():
         # Be careful: a too large read size will result in a hang while LAF
         # tries to read more data, requiring a reset.
         if args.size:
+            offset = args.offset
             size = args.size
         else:
+            offset = args.offset
             size = get_file_size(comm, args.file)
+            if offset > size:
+                _logger.warning("Offset %d is larger than the detected size %d",
+                        offset, size)
+            size -= offset
         if size > 0:
             _logger.debug("File size is %d", size)
             with laf_open_ro(comm, args.file) as file_fd:
                 _logger.debug("Opened fd %d for file %s", file_fd, args.file)
-                dump_file(comm, file_fd, args.output_file, size)
+                dump_file(comm, file_fd, args.output_file, size, offset)
         else:
             _logger.warning("Not a file or zero size, not writing file")
 
