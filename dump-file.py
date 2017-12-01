@@ -79,6 +79,8 @@ def open_local_writable(path):
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--debug", action='store_true', help="Enable debug messages")
+parser.add_argument("--size", type=int,
+        help="Override file size (useful for files in /proc)")
 parser.add_argument("file", help="File path on the device")
 parser.add_argument("output_file",
         help="Local output file (use '-' for stdout)")
@@ -94,7 +96,10 @@ def main():
 
         # Be careful: a too large read size will result in a hang while LAF
         # tries to read more data, requiring a reset.
-        size = get_file_size(comm, args.file)
+        if args.size:
+            size = args.size
+        else:
+            size = get_file_size(comm, args.file)
         if size > 0:
             _logger.debug("File size is %d", size)
             with laf_open_ro(comm, args.file) as file_fd:
