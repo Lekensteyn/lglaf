@@ -25,8 +25,8 @@ parser.add_argument("--skip-hello", action="store_true",
 def dump_partitions(comm, disk_fd, outdir, max_size):
     diskinfo = partitions.get_partitions(comm, disk_fd)
     for part in diskinfo.gpt.partitions:
-        part_offset = part.first_bla * partitions.BLOCK_SIZE
-        part_size = (part.last_lba - part.first_bla) * partitions.BLOCK_SIZE
+        part_offset = part.first_lba * partitions.BLOCK_SIZE
+        part_size = (part.last_lba - part.first_lba) * partitions.BLOCK_SIZE
         part_name = part.name
         part_label = "/dev/mmcblk0p%i" % part.index
         if max_size and part_size > max_size:
