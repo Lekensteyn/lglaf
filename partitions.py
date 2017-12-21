@@ -259,7 +259,7 @@ def main():
             _logger.debug("%s", info)
 
             part_offset = part.first_lba * BLOCK_SIZE
-            part_size = (part.last_lba - part.first_lba) * BLOCK_SIZE
+            part_size = (part.last_lba - (part.first_lba - 1)) * BLOCK_SIZE
 
             _logger.debug("Opened fd %d for disk", disk_fd)
             if args.dump:
