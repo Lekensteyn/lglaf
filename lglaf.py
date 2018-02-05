@@ -24,16 +24,21 @@ except ImportError:
 _logger = logging.getLogger("LGLAF.py")
 
 # Python 2/3 compat
-try: input = raw_input
-except: pass
-if '\0' == b'\0': int_as_byte = chr
-else: int_as_byte = lambda x: bytes([x])
+try:
+    input = raw_input
+except:
+    pass
+
+if '\0' == b'\0':
+    int_as_byte = chr
+else:
+    int_as_byte = lambda x: bytes([x])
 
 # laf crypto for KILO challenge/response
 try:
     import laf_crypto
-except ImportError:
-    _logger.warning("LAF Crypto failed to import!")
+except ImportError as e:
+    _logger.warning("LAF Crypto failed to import! Error: %s" % e)
     pass
 
 # Use Manufacturer key for KILO challenge/response
