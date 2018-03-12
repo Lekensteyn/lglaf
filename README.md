@@ -20,10 +20,11 @@ LGLAF.py depends on:
 
  - Python 2.7 or 3: https://www.python.org/
  - (Windows) LG driver,
-   [LGMobileDriver\_WHQL\_Ver\_4.0.3.exe](http://18d5a.wpc.azureedge.net/8018D5A/tool/dn/downloader.dev?fileKey=UW00120120425)
-   (12986920 bytes,
-   sha256sum: 86e893b7f5da7f7d2656d9ce2563f082271983bb63903d0ed5cb279c560db459)
+   [LGMobileDriver\_WHQL\_Ver\_4.2.0.exe](http://oceanhost.eu/wylc5rg7a8ou/LGMobileDriver_WHQL_Ver_4.2.0.exe.htm)
+   (16691672 bytes,
+   sha256sum: d78ae6dfe7d34b9cabb8c4de5c6e734b6fed20b513d0da0183871bd77abba56c)
  - (Linux) PyUSB: https://walac.github.io/pyusb/
+ - Cryptography library: https://cryptography.io/en/latest/
 
 On Linux, you must also install
 [rules.d/42-usb-lglaf.rules](rules.d/42-usb-lglaf.rules) to `/etc/udev/rules.d/`
