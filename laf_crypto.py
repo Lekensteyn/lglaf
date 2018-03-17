@@ -6,10 +6,9 @@ from lglaf import int_as_byte
 
 def key_transform(old_key):
     new_key = b''
+    old_key = bytearray(old_key)
     for x in range(32, 0, -1):
         c = old_key[x-1]
-        if not isinstance(c, int):
-            c = ord(c)
         new_key += int_as_byte(c - (x % 0x0C))
     return new_key
 
