@@ -11,6 +11,7 @@ from contextlib import closing, contextmanager
 import argparse, logging, os, io, struct, sys, time
 import lglaf
 import gpt
+import usb.core, usb.util
 
 _logger = logging.getLogger("partitions")
 
@@ -72,6 +73,8 @@ def laf_read(comm, fd_num, offset, size):
             header, response = comm.call(read_cmd)
             break
         except usb.core.USBError as e:
+            if attempt == 2:
+                raise
             if e.strerror == 'Overflow':
                 _logger.debug("Overflow on READ %d %d %d", fd_num, offset, size)
                 for attempt in range(3):
