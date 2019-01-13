@@ -11,6 +11,7 @@ from contextlib import closing, contextmanager
 import argparse, logging, os, io, struct, sys
 import lglaf
 import gpt
+import os
 
 _logger = logging.getLogger("partitions")
 
@@ -95,10 +96,20 @@ def laf_write(comm, fd_num, offset, data):
 
 def open_local_writable(path):
     if path == '-':
-        try: return sys.stdout.buffer
-        except: return sys.stdout
+        try: return (sys.stdout.buffer,0)
+        except: return (sys.stdout,0)
     else:
-        return open(path, "wb")
+        try:
+            s = os.stat(path)
+        except OSError:
+            s = 0
+            f = open(path, "wb")
+        else:
+            s = s.st_size
+            assert not s%BLOCK_SIZE
+            f = open(path, "ab")
+        return (f,s)
+
 
 def open_local_readable(path):
     if path == '-':
@@ -136,12 +147,14 @@ def dump_partition(comm, disk_fd, local_path, part_offset, part_size):
     # Read offsets must be a multiple of 512 bytes, enforce this
     read_offset = BLOCK_SIZE * (part_offset // BLOCK_SIZE)
     end_offset = part_offset + part_size
-    unaligned_bytes = part_offset % BLOCK_SIZE
-    _logger.debug("Will read %d bytes at disk offset %d", part_size, part_offset)
-    if unaligned_bytes:
-        _logger.debug("Unaligned read, read will start at %d", read_offset)
 
-    with open_local_writable(local_path) as f:
+    _f,s = open_local_writable(local_path)
+    with _f as f:
+        read_offset += s
+        unaligned_bytes = read_offset % BLOCK_SIZE
+        if unaligned_bytes:
+            _logger.debug("Unaligned read, read will start at %d", read_offset)
+        _logger.debug("Will read %d bytes at disk offset %d", part_size, part_offset)
         # Offset should be aligned to block size. If not, read at most a
         # whole block and drop the leading bytes.
         if unaligned_bytes:
