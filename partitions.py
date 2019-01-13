@@ -74,15 +74,16 @@ def laf_read(comm, fd_num, offset, size):
             break
         except usb.core.USBError as e:
             if attempt == 2:
-                raise
+                raise # last attempt
             if e.strerror == 'Overflow':
                 _logger.debug("Overflow on READ %d %d %d", fd_num, offset, size)
                 for attempt in range(3):
-                  try:
-                    comm.reset()
-                    comm._read(-1) # clear line
-                    break
-                  except usb.core.USBError: pass
+                    try:
+                        comm.reset()
+                        comm._read(-1) # clear line
+                        break
+                    except usb.core.USBError:
+                        pass
                 continue
             elif e.strerror == 'Operation timed out':
                 _logger.debug("Timeout on READ %d %d %d", fd_num, offset, size)
@@ -90,8 +91,9 @@ def laf_read(comm, fd_num, offset, size):
                 time.sleep(3)
                 comm.__init__()
                 try:
-                  lglaf.try_hello(comm)
-                except usb.core.USBError: pass
+                    lglaf.try_hello(comm)
+                except usb.core.USBError:
+                    pass
                 close_cmd = lglaf.make_request(b'CLSE', args=[fd_num])
                 comm.call(close_cmd)
                 open_cmd = lglaf.make_request(b'OPEN', body=b'\0')
