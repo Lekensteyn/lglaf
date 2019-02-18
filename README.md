@@ -36,6 +36,7 @@ Tested with:
  - LG G3 (D855) on 64-bit Arch Linux (Python 3.5.1, pyusb 1.0.0b2, libusb 1.0.20)
  - LG G3 (D855) on 32-bit Windows XP (Python 3.4.4, LG drivers).
  - LG G2 (VS985).
+ - LG G3 (D850) on 64-bit Ubuntu
  - LG G4 (VS986) on Linux (Python 3.5) and Windows.
  - LG K10 2017 (M250N) on Linux (Both Python 2.7.13 and Python 3.5.3).
 
