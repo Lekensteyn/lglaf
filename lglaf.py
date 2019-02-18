@@ -260,9 +260,9 @@ class FileCommunication(Communication):
     def __init__(self, file_path):
         super(FileCommunication, self).__init__()
         if sys.version_info[0] >= 3:
-            self.f = open(file_path, 'r+b', buffering=0)
+            self.f = open("\\\\.\\"+file_path, 'r+b', buffering=0)
         else:
-            self.f = open(file_path, 'r+b')
+            self.f = open("\\\\.\\"+file_path, 'r+b')
     def _read(self, n, timeout=None):
         return self.f.read(n)
     def write(self, data):
