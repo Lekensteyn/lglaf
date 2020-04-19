@@ -396,7 +396,7 @@ def detect_serial_path():
                 name, value, value_type = winreg.EnumValue(key, i)
                 # match both \Device\LGANDNETDIAG1 and \Device\LGVZANDNETDIAG1
                 name = name.upper()
-                if name.startswith(r'\DEVICE\LG') and name.endswith('ANDNETDIAG1'):
+                if name.startswith(r'\DEVICE\LG') and (name.endswith('G1') or name.endswith('G2')):
                     return value
     except OSError: pass
     return None
