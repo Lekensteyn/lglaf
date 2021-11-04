@@ -85,7 +85,10 @@ the `LEAVE` command.
 LG Flash DLL waits 5000 milliseconds after this command.
 
 Purpose of `ONRS` and `AATD` are unknown. Both seem to reboot normally. Probably
-one is meant to enter fastboot?
+one is meant to enter fastboot?  
+
+**WARNING**: These two commands (`ONRS` and `AATD`) can brick fones. Be careful!
+better don't use!
 
 ### WRTE - Write File
 Writes to a file descriptor.
